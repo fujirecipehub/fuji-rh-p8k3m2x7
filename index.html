@@ -2310,6 +2310,55 @@ body.dark-theme .location-filter-input { background: rgba(255,255,255,0.05); }
 body.dark-theme .location-tag { background: rgba(255,255,255,0.05); }
 body.dark-theme .location-tag.active { background: var(--accent-teal); color: #fff; }
 
+/* ===== Shooting Timer ===== */
+.timer-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 3000;
+    display: none; align-items: center; justify-content: center; padding: 1rem;
+}
+.timer-overlay.open { display: flex; }
+.timer-container {
+    background: var(--bg-modal); border-radius: 16px; max-width: 480px; width: 100%;
+    max-height: 90vh; overflow-y: auto; padding: 1.5rem; position: relative; box-shadow: var(--shadow-lg);
+}
+.timer-close {
+    position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+    cursor: pointer; color: var(--text-muted); padding: 0.25rem;
+}
+.timer-close svg { width: 20px; height: 20px; }
+.timer-title {
+    font-family: var(--font-outfit); font-size: 1.1rem; font-weight: 700;
+    margin-bottom: 0.5rem; color: var(--text-primary);
+}
+.timer-status { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; }
+.timer-cards { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+.timer-card {
+    border: 1px solid var(--border-color); border-radius: 12px; padding: 0.8rem 1rem;
+    display: flex; align-items: center; gap: 0.8rem;
+}
+.timer-card.active { border-color: var(--accent-teal); background: rgba(42,157,143,0.05); }
+body.dark-theme .timer-card.active { background: rgba(42,157,143,0.1); }
+.timer-icon { font-size: 1.5rem; flex-shrink: 0; }
+.timer-card-info { flex: 1; min-width: 0; }
+.timer-card-label { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+.timer-card-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem; }
+.timer-card-countdown {
+    font-family: var(--font-outfit); font-size: 1rem; font-weight: 700;
+    color: var(--accent-teal); text-align: right; white-space: nowrap;
+}
+.timer-card-countdown.past { color: var(--text-muted); font-weight: 400; font-size: 0.78rem; }
+.timer-recommend-title {
+    font-size: 0.82rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;
+}
+.timer-recipe-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.timer-recipe-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0.7rem; border: 1px solid var(--border-color); border-radius: 8px;
+    cursor: pointer; transition: var(--transition-smooth); font-size: 0.8rem;
+}
+.timer-recipe-item:hover { border-color: var(--accent-teal); }
+.timer-recipe-name { color: var(--text-primary); font-weight: 500; }
+.timer-recipe-sim { color: var(--text-muted); font-size: 0.72rem; }
+
 /* ===== Hue Map ===== */
 .huemap-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 3000;
@@ -3446,6 +3495,13 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                     <span>カレンダー</span>
                 </button>
 
+                <button id="timerBtn" class="dash-btn" title="撮影タイマー">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>タイマー</span>
+                </button>
+
                 <button id="huemapBtn" class="dash-btn" title="色相環マップ">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
@@ -3787,6 +3843,19 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                 </div>
             </div>
             <div id="compareResult"></div>
+        </div>
+    </div>
+
+    <!-- Shooting Timer Modal -->
+    <div class="timer-overlay" id="timerOverlay">
+        <div class="timer-container">
+            <button class="timer-close" id="timerClose">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div class="timer-title">撮影タイマー</div>
+            <div class="timer-status" id="timerStatus">位置情報を取得中...</div>
+            <div class="timer-cards" id="timerCards"></div>
+            <div id="timerRecommend"></div>
         </div>
     </div>
 
@@ -13186,6 +13255,213 @@ function setupBlend() {
     });
 }
 
+// ===== Shooting Timer =====
+let timerInterval = null;
+
+function calcSunTimes(lat, lng, date) {
+    const rad = Math.PI / 180;
+    const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+    const decl = -23.45 * Math.cos(rad * 360 / 365 * (dayOfYear + 10));
+    const eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(rad * 360 / 365 * (dayOfYear - 1))
+        - 0.032077 * Math.sin(rad * 360 / 365 * (dayOfYear - 1))
+        - 0.014615 * Math.cos(2 * rad * 360 / 365 * (dayOfYear - 1))
+        - 0.04089 * Math.sin(2 * rad * 360 / 365 * (dayOfYear - 1)));
+
+    const ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl * rad))
+        - Math.tan(lat * rad) * Math.tan(decl * rad)) / rad;
+
+    const tzOffset = -date.getTimezoneOffset();
+    const solarNoon = 720 - 4 * lng - eqTime + tzOffset;
+    const sunrise = solarNoon - ha * 4;
+    const sunset = solarNoon + ha * 4;
+
+    function minToDate(m) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        d.setMinutes(Math.round(m));
+        return d;
+    }
+
+    const sr = minToDate(sunrise);
+    const ss = minToDate(sunset);
+    return {
+        sunrise: sr,
+        sunset: ss,
+        goldenMorning: { start: sr, end: new Date(sr.getTime() + 60 * 60000) },
+        goldenEvening: { start: new Date(ss.getTime() - 60 * 60000), end: ss },
+        blueMorning: { start: new Date(sr.getTime() - 30 * 60000), end: sr },
+        blueEvening: { start: ss, end: new Date(ss.getTime() + 30 * 60000) },
+    };
+}
+
+function fmtTime(d) {
+    return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+}
+
+function fmtCountdown(ms) {
+    if (ms <= 0) return null;
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    if (h > 0) return `${h}時間${m}分`;
+    if (m > 0) return `${m}分${s}秒`;
+    return `${s}秒`;
+}
+
+function getTimerRecipes(period) {
+    const combined = getCombinedRecipes();
+    const profiles = {
+        goldenMorning: { warm: [0.5, 1], sat: [0.35, 0.8], sims: ['Astia', 'Classic Chrome', 'Nostalgic Neg', 'Reala Ace'] },
+        goldenEvening: { warm: [0.5, 1], sat: [0.4, 1], sims: ['Velvia', 'Classic Chrome', 'Classic Negative', 'Nostalgic Neg'] },
+        blueMorning: { warm: [0, 0.5], sat: [0.2, 0.5], sims: ['Eterna', 'PRO Neg. Std', 'Acros', 'Classic Chrome'] },
+        blueEvening: { warm: [0, 0.55], sat: [0.15, 0.5], sims: ['Eterna', 'Eterna Bleach Bypass', 'Acros', 'PRO Neg. Std', 'Classic Chrome'] },
+    };
+    const pref = profiles[period] || profiles.goldenEvening;
+
+    const scored = combined.map(r => {
+        const sim = (r.settings.film_simulation || '').replace(/&nbsp;/g, ' ').trim();
+        let score = 0;
+        for (const s of pref.sims) {
+            if (sim.toLowerCase().includes(s.toLowerCase())) { score += 3; break; }
+        }
+        let profile = null;
+        for (const key in SIM_PROFILES) {
+            if (sim.toLowerCase().includes(key.toLowerCase())) { profile = SIM_PROFILES[key]; break; }
+        }
+        if (!profile) profile = SIM_PROFILES['Provia'];
+        if (profile.warm >= pref.warm[0] && profile.warm <= pref.warm[1]) score += 1;
+        if (profile.sat >= pref.sat[0] && profile.sat <= pref.sat[1]) score += 1;
+        return { recipe: r, score };
+    }).filter(s => s.score >= 3).sort((a, b) => b.score - a.score);
+
+    return scored.slice(0, 5).map(s => s.recipe);
+}
+
+function renderTimer(sun) {
+    const now = new Date();
+    const events = [
+        { key: 'blueMorning', icon: '🌌', label: 'ブルーアワー（朝）', start: sun.blueMorning.start, end: sun.blueMorning.end },
+        { key: 'goldenMorning', icon: '🌅', label: 'ゴールデンアワー（朝）', start: sun.goldenMorning.start, end: sun.goldenMorning.end },
+        { key: 'goldenEvening', icon: '🌇', label: 'ゴールデンアワー（夕）', start: sun.goldenEvening.start, end: sun.goldenEvening.end },
+        { key: 'blueEvening', icon: '🌃', label: 'ブルーアワー（夜）', start: sun.blueEvening.start, end: sun.blueEvening.end },
+    ];
+
+    let currentPeriod = null;
+    let nextEvent = null;
+
+    for (const ev of events) {
+        if (now >= ev.start && now <= ev.end) { currentPeriod = ev; break; }
+    }
+    if (!currentPeriod) {
+        for (const ev of events) {
+            if (ev.start > now) { nextEvent = ev; break; }
+        }
+    }
+
+    const cardsHtml = events.map(ev => {
+        const isActive = currentPeriod && currentPeriod.key === ev.key;
+        const isPast = ev.end < now;
+        let countdownStr = '';
+        if (isActive) {
+            const remaining = ev.end.getTime() - now.getTime();
+            countdownStr = `<div class="timer-card-countdown">残り ${fmtCountdown(remaining)}</div>`;
+        } else if (!isPast && ev.start > now) {
+            const until = ev.start.getTime() - now.getTime();
+            countdownStr = `<div class="timer-card-countdown">${fmtCountdown(until)}後</div>`;
+        } else {
+            countdownStr = `<div class="timer-card-countdown past">終了</div>`;
+        }
+        return `<div class="timer-card ${isActive ? 'active' : ''}">
+            <div class="timer-icon">${ev.icon}</div>
+            <div class="timer-card-info">
+                <div class="timer-card-label">${ev.label}</div>
+                <div class="timer-card-time">${fmtTime(ev.start)} 〜 ${fmtTime(ev.end)}</div>
+            </div>
+            ${countdownStr}
+        </div>`;
+    }).join('');
+
+    document.getElementById('timerCards').innerHTML = cardsHtml;
+
+    const recommendKey = currentPeriod ? currentPeriod.key : (nextEvent ? nextEvent.key : 'goldenEvening');
+    const recommendLabel = currentPeriod ? currentPeriod.label : (nextEvent ? nextEvent.label : 'ゴールデンアワー（夕）');
+    const recipes = getTimerRecipes(recommendKey);
+
+    let recHtml = '';
+    if (recipes.length > 0) {
+        recHtml = `<div class="timer-recommend-title">${currentPeriod ? '今の時間帯' : '次の時間帯'}（${recommendLabel}）のおすすめ</div>
+        <div class="timer-recipe-list">
+            ${recipes.map(r => {
+                const sim = (r.settings.film_simulation || '').replace(/&nbsp;/g, ' ').trim();
+                return `<div class="timer-recipe-item" data-id="${r.id}" data-myrecipe="${r.isMyRecipe || false}">
+                    <span class="timer-recipe-name">${r.title}</span>
+                    <span class="timer-recipe-sim">${sim}</span>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+    document.getElementById('timerRecommend').innerHTML = recHtml;
+
+    document.querySelectorAll('.timer-recipe-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.dataset.id;
+            const isMyRecipe = el.dataset.myrecipe === 'true';
+            let target;
+            if (isMyRecipe) { target = myRecipes.find(r => r.id === id); if (target) target = { ...target, generation: 'myrecipe', isMyRecipe: true }; }
+            else { target = allRecipes.find(r => r.id === id); }
+            if (target) { document.getElementById('timerOverlay').classList.remove('open'); openModal(target); }
+        });
+    });
+}
+
+function openTimer() {
+    const overlay = document.getElementById('timerOverlay');
+    overlay.classList.add('open');
+    document.getElementById('timerStatus').textContent = '位置情報を取得中...';
+    document.getElementById('timerCards').innerHTML = '';
+    document.getElementById('timerRecommend').innerHTML = '';
+
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+    if (!navigator.geolocation) {
+        document.getElementById('timerStatus').textContent = '位置情報が利用できません。デフォルト位置（東京）を使用します。';
+        startTimer(35.6762, 139.6503);
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        pos => startTimer(pos.coords.latitude, pos.coords.longitude),
+        () => {
+            document.getElementById('timerStatus').textContent = '位置情報を取得できませんでした。東京の時刻を表示します。';
+            startTimer(35.6762, 139.6503);
+        },
+        { timeout: 5000 }
+    );
+}
+
+function startTimer(lat, lng) {
+    const sun = calcSunTimes(lat, lng, new Date());
+    document.getElementById('timerStatus').textContent =
+        `日の出 ${fmtTime(sun.sunrise)} ／ 日の入り ${fmtTime(sun.sunset)}`;
+    renderTimer(sun);
+    timerInterval = setInterval(() => renderTimer(sun), 1000);
+}
+
+function setupTimer() {
+    const overlay = document.getElementById('timerOverlay');
+    document.getElementById('timerClose').addEventListener('click', () => {
+        overlay.classList.remove('open');
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    });
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.classList.remove('open');
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        }
+    });
+    document.getElementById('timerBtn').addEventListener('click', openTimer);
+}
+
 // ===== Hue Map =====
 const HUE_SIM_COLORS = {
     'Velvia': '#e63946', 'Astia': '#f4a261', 'Provia': '#2a9d8f', 'Provia/STD': '#2a9d8f',
@@ -14943,6 +15219,7 @@ function setupEventListeners() {
     setupPhotoMatch();
     setupBlend();
     setupHueMap();
+    setupTimer();
     populateLocationFilter();
 
     document.getElementById('locationInput').addEventListener('change', saveMemoForRecipe);
@@ -14950,9 +15227,11 @@ function setupEventListeners() {
     const pmatchOverlay = document.getElementById('pmatchOverlay');
     const blendOverlay = document.getElementById('blendOverlay');
     const huemapOverlay = document.getElementById('huemapOverlay');
+    const timerOverlay = document.getElementById('timerOverlay');
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (huemapOverlay.classList.contains('open')) { huemapOverlay.classList.remove('open'); }
+            if (timerOverlay.classList.contains('open')) { timerOverlay.classList.remove('open'); if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
+            else if (huemapOverlay.classList.contains('open')) { huemapOverlay.classList.remove('open'); }
             else if (blendOverlay.classList.contains('open')) { blendOverlay.classList.remove('open'); }
             else if (pmatchOverlay.classList.contains('open')) { pmatchOverlay.classList.remove('open'); }
             else if (randomOverlay.classList.contains('open')) { randomOverlay.classList.remove('open'); }
