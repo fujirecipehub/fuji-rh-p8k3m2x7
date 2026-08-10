@@ -12778,6 +12778,8 @@ async function deleteMyRecipe() {
     if (!editingRecipeId) return;
     if (!confirm('このレシピを削除しますか？')) return;
     await dbDelete(editingRecipeId);
+    const evoHist = getEvoHistory();
+    if (evoHist[editingRecipeId]) { delete evoHist[editingRecipeId]; saveEvoHistory(evoHist); }
     favorites.delete(editingRecipeId);
     saveFavorites();
     updateFavCounter();
