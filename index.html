@@ -2414,13 +2414,17 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 
 /* Print layout for PDF book */
 @media print {
-    /* Override the app's dark theme + the other print block's body-wide hide */
+    /* Override the app's dark theme */
     html:has(body.book-printing), body.book-printing { background: #fff !important; color-scheme: light; }
-    body.book-printing * { visibility: hidden !important; }
+    /* Remove the whole app from the print LAYOUT so it doesn't add blank pages.
+       (visibility:hidden keeps layout and would paginate hundreds of empty pages.) */
+    body.book-printing > *:not(.book-print-root) { display: none !important; }
+    body.book-printing #printArea { display: none !important; }
+    /* Re-show our content over the other print block's `body * {visibility:hidden}` */
     body.book-printing .book-print-root,
     body.book-printing .book-print-root * { visibility: visible !important; }
     body.book-printing .book-print-root {
-        display: block !important; position: absolute; left: 0; top: 0; width: 100%;
+        display: block !important; position: static; width: 100%;
         background: #fff !important; color: #000 !important;
         font-family: 'Helvetica Neue', Arial, sans-serif;
         -webkit-print-color-adjust: exact; print-color-adjust: exact;
@@ -2428,15 +2432,19 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
     body.book-printing .book-print-cover { text-align: center; padding: 30vh 2rem 0; page-break-after: always; }
     body.book-printing .book-print-cover h1 { font-size: 28pt; margin: 0 0 1rem; color: #000 !important; }
     body.book-printing .book-print-cover p { font-size: 12pt; color: #555 !important; }
-    body.book-printing .book-print-recipe { page-break-after: always; padding: 1.5rem 0; }
-    body.book-printing .book-print-recipe h2 { font-size: 20pt; margin: 0 0 0.5rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; color: #000 !important; }
-    body.book-printing .book-print-recipe .gen { font-size: 10pt; color: #666 !important; margin: 0 0 1rem; }
-    body.book-printing .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-    body.book-printing .book-print-table th, body.book-printing .book-print-table td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; color: #111 !important; }
+    body.book-printing .book-print-recipe { page-break-after: always; padding: 0.5rem 0; }
+    body.book-printing .book-print-recipe h2 { font-size: 20pt; margin: 0 0 0.4rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; color: #000 !important; }
+    body.book-printing .book-print-recipe .gen { font-size: 10pt; color: #666 !important; margin: 0 0 0.6rem; }
+    /* Photos first (above the settings), each photo kept within a single page */
+    body.book-printing .book-print-photos { margin-bottom: 0.75rem; }
+    body.book-printing .book-print-photos img {
+        display: block; width: auto; max-width: 100%; max-height: 23cm;
+        object-fit: contain; margin: 0 auto 0.5rem; page-break-inside: avoid;
+    }
+    body.book-printing .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; page-break-inside: avoid; }
+    body.book-printing .book-print-table th, body.book-printing .book-print-table td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; color: #111 !important; }
     body.book-printing .book-print-table th { width: 42%; color: #333 !important; font-weight: 700; }
-    body.book-printing .book-print-photos img { width: 100%; max-height: 8.5in; object-fit: contain; margin-bottom: 0.5rem; page-break-inside: avoid; }
     body.book-printing .book-print-notes { font-size: 11pt; white-space: pre-wrap; border-left: 3px solid #999; padding-left: 0.75rem; margin-top: 1rem; color: #111 !important; }
-    body.book-printing #printArea { display: none !important; }
     @page { margin: 12mm; }
 }
 .book-print-root { display: none; }
@@ -13766,17 +13774,21 @@ function generateBookPdf() {
         html += `<div class="book-print-recipe">
             <h2>${escHtml(r.title)}</h2>
             <p class="gen">${escHtml(genLabel)}</p>
+            <div class="book-print-photos">${photosHtml}</div>
             <table class="book-print-table"><tbody>${rows}</tbody></table>
             ${notes}
-            <div class="book-print-photos">${photosHtml}</div>
         </div>`;
     });
     root.innerHTML = html;
     document.body.appendChild(root);
     document.body.classList.add('book-printing');
+    // Use the book title for the browser print header (top-center)
+    const prevTitle = document.title;
+    document.title = bookTitle;
 
     const cleanup = () => {
         document.body.classList.remove('book-printing');
+        document.title = prevTitle;
         if (root && root.parentNode) root.remove();
         window.removeEventListener('afterprint', cleanup);
     };
@@ -13906,7 +13918,7 @@ img{max-width:100%;margin:.5em 0;}
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><title>${escHtml(r.title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body><h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p><table><tbody>${rows}</tbody></table>${notesHtml}${photosHtml}</body></html>`;
+<body><h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p>${photosHtml}<table><tbody>${rows}</tbody></table>${notesHtml}</body></html>`;
         files.push({ name: `OEBPS/${chapId}.xhtml`, bytes: enc.encode(chapXhtml) });
         manifestItems.push(`<item id="${chapId}" href="${chapId}.xhtml" media-type="application/xhtml+xml"/>`);
         spineItems.push(`<itemref idref="${chapId}"/>`);
