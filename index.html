@@ -2348,6 +2348,88 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 }
 .evo-legend-dot { width: 10px; height: 3px; border-radius: 2px; }
 
+/* ===== Kindle Book Builder ===== */
+.book-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 3000;
+    display: none; align-items: center; justify-content: center; padding: 1rem;
+}
+.book-overlay.open { display: flex; }
+.book-container {
+    background: var(--bg-modal); border-radius: 16px; max-width: 680px; width: 100%;
+    max-height: 90vh; display: flex; flex-direction: column; padding: 1.5rem; position: relative; box-shadow: var(--shadow-lg);
+}
+.book-close {
+    position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+    color: var(--text-secondary); cursor: pointer; padding: 0.25rem;
+}
+.book-close svg { width: 24px; height: 24px; }
+.book-title-head { font-size: 1.25rem; font-weight: 800; margin: 0 0 0.25rem; color: var(--text-primary); }
+.book-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1rem; }
+.book-field-label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.35rem; }
+.book-input {
+    width: 100%; padding: 0.65rem 0.85rem; font-size: 16px; border: 2px solid var(--border-color);
+    border-radius: 10px; background: var(--bg-input); color: var(--text-primary); margin-bottom: 0.85rem;
+}
+.book-input:focus { outline: none; border-color: var(--accent-gold); }
+.book-toolbar-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
+.book-search { flex: 1 1 180px; margin-bottom: 0; }
+.book-mini-btn {
+    padding: 0.5rem 0.75rem; font-size: 0.8rem; font-weight: 700; border: 2px solid var(--border-color);
+    border-radius: 8px; background: var(--bg-input); color: var(--text-primary); cursor: pointer;
+}
+.book-mini-btn:hover { border-color: var(--accent-gold); }
+.book-list {
+    flex: 1 1 auto; overflow-y: auto; border: 2px solid var(--border-color); border-radius: 10px;
+    min-height: 180px; max-height: 40vh; margin-bottom: 0.85rem;
+}
+.book-row {
+    display: flex; align-items: center; gap: 0.65rem; padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border-color); cursor: pointer;
+}
+.book-row:last-child { border-bottom: none; }
+.book-row:hover { background: var(--bg-hover); }
+.book-row.selected { background: rgba(212,160,23,0.14); }
+.book-row input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--accent-gold); cursor: pointer; }
+.book-row-body { flex: 1 1 auto; min-width: 0; }
+.book-row-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.book-row-sub { font-size: 0.75rem; color: var(--text-secondary); }
+.book-badge {
+    display: inline-block; font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 6px;
+    background: var(--accent-gold); color: #1a1a1a; margin-left: 0.35rem;
+}
+.book-badge.photo { background: #2a9d8f; color: #fff; }
+.book-selcount { font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.85rem; }
+.book-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+.book-gen-btn {
+    flex: 1 1 140px; padding: 0.9rem 1rem; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px;
+    cursor: pointer; color: #fff; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+}
+.book-gen-btn svg { width: 20px; height: 20px; }
+.book-gen-btn.epub { background: #2a9d8f; }
+.book-gen-btn.epub:hover { background: #21867a; }
+.book-gen-btn.pdf { background: #c0392b; }
+.book-gen-btn.pdf:hover { background: #a93226; }
+.book-gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.book-hint { font-size: 0.75rem; color: var(--text-muted); margin: 0.85rem 0 0; line-height: 1.5; }
+
+/* Print layout for PDF book */
+@media print {
+    body.book-printing > *:not(.book-print-root) { display: none !important; }
+    .book-print-root { display: block !important; }
+    .book-print-cover { text-align: center; padding: 30vh 2rem 0; page-break-after: always; }
+    .book-print-cover h1 { font-size: 28pt; margin: 0 0 1rem; }
+    .book-print-cover p { font-size: 12pt; color: #555; }
+    .book-print-recipe { page-break-after: always; padding: 1.5rem 0; }
+    .book-print-recipe h2 { font-size: 20pt; margin: 0 0 0.5rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; }
+    .book-print-recipe .gen { font-size: 10pt; color: #666; margin: 0 0 1rem; }
+    .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+    .book-print-table th, .book-print-table td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; }
+    .book-print-table th { width: 42%; color: #333; font-weight: 700; }
+    .book-print-photos img { width: 100%; max-height: 8.5in; object-fit: contain; margin-bottom: 0.5rem; page-break-inside: avoid; }
+    .book-print-notes { font-size: 11pt; white-space: pre-wrap; border-left: 3px solid #999; padding-left: 0.75rem; margin-top: 1rem; }
+}
+.book-print-root { display: none; }
+
 /* ===== Shooting Timer ===== */
 .timer-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 3000;
@@ -3554,6 +3636,13 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                     <span>色相環</span>
                 </button>
 
+                <button id="bookBtn" class="dash-btn" title="Kindle用レシピ本を作成">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span>本作成</span>
+                </button>
+
                 <div class="fontsize-controls">
                     <button class="fontsize-btn" data-size="small" onclick="setFontSize('small')">小</button>
                     <button class="fontsize-btn active" data-size="medium" onclick="setFontSize('medium')">中</button>
@@ -3907,6 +3996,40 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                 <canvas id="evoCanvas"></canvas>
             </div>
             <div class="evo-legend" id="evoLegend"></div>
+        </div>
+    </div>
+
+    <!-- Kindle Book Builder Modal -->
+    <div class="book-overlay" id="bookOverlay">
+        <div class="book-container">
+            <button class="book-close" id="bookClose">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div class="book-title-head">レシピ本を作成</div>
+            <div class="book-desc">レシピを選んで、Kindleで読める本にまとめます（EPUB / PDF）</div>
+            <label class="book-field-label" for="bookTitleInput">本のタイトル</label>
+            <input type="text" class="book-input" id="bookTitleInput" value="マイ フィルムレシピブック">
+            <div class="book-toolbar-row">
+                <input type="text" class="book-input book-search" id="bookSearch" placeholder="レシピ名・シミュレーションで絞り込み...">
+                <button class="book-mini-btn" id="bookSelMy" type="button">マイレシピ全選択</button>
+                <button class="book-mini-btn" id="bookSelClear" type="button">選択解除</button>
+            </div>
+            <div class="book-list" id="bookList"></div>
+            <div class="book-selcount" id="bookSelCount">0 件を選択中</div>
+            <div class="book-actions">
+                <button class="book-gen-btn epub" id="bookGenEpub" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    EPUBで作成
+                </button>
+                <button class="book-gen-btn pdf" id="bookGenPdf" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    PDFで作成
+                </button>
+            </div>
+            <p class="book-hint">
+                <strong>EPUB</strong>：ダウンロード後、Amazonの「パーソナル・ドキュメント」やSend to KindleアプリでKindleに送れます（文字サイズ変更可）。<br>
+                <strong>PDF</strong>：印刷ダイアログが開くので、送信先で「PDFに保存」を選んでください。写真も含めてそのまま出力されます。
+            </p>
         </div>
     </div>
 
@@ -13529,6 +13652,322 @@ function setupTimer() {
     document.getElementById('timerBtn').addEventListener('click', openTimer);
 }
 
+// ===== Kindle Book Builder =====
+const BOOK_LABELS = {
+    film_simulation: 'フィルムシミュレーション',
+    dynamic_range: 'ダイナミックレンジ',
+    grain_effect: 'グレイン・エフェクト',
+    color_chrome_effect: 'カラークローム・エフェクト',
+    color_chrome_fx_blue: 'カラークローム FXブルー',
+    white_balance: 'ホワイトバランス',
+    highlight_tone: 'ハイライトトーン',
+    shadow_tone: 'シャドウトーン',
+    color: 'カラー',
+    sharpness: 'シャープネス',
+    noise_reduction: 'ノイズリダクション',
+    clarity: 'クラリティ',
+    exposure_compensation: '露出補正'
+};
+const bookSelected = new Set();
+
+function bookGetPhotos(recipe) {
+    if (recipe.isMyRecipe) return recipe.images || [];
+    return recipePhotos[recipe.id] || [];
+}
+
+function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderBookList() {
+    const list = document.getElementById('bookList');
+    const q = document.getElementById('bookSearch').value.trim().toLowerCase();
+    const combined = getCombinedRecipes();
+    const rows = combined.filter(r => {
+        if (!q) return true;
+        const hay = (r.title + ' ' + (r.settings.film_simulation || '')).toLowerCase();
+        return hay.includes(q);
+    });
+    if (rows.length === 0) {
+        list.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);">該当するレシピがありません</div>';
+        return;
+    }
+    list.innerHTML = rows.map(r => {
+        const sel = bookSelected.has(r.id);
+        const photoCount = bookGetPhotos(r).length;
+        const myBadge = r.isMyRecipe ? '<span class="book-badge">マイ</span>' : '';
+        const photoBadge = photoCount > 0 ? `<span class="book-badge photo">写真${photoCount}</span>` : '';
+        return `<label class="book-row ${sel ? 'selected' : ''}" data-id="${escHtml(r.id)}">
+            <input type="checkbox" ${sel ? 'checked' : ''}>
+            <span class="book-row-body">
+                <span class="book-row-title">${escHtml(r.title)}${myBadge}${photoBadge}</span>
+                <span class="book-row-sub">${escHtml(r.settings.film_simulation || '—')}</span>
+            </span>
+        </label>`;
+    }).join('');
+}
+
+function updateBookCount() {
+    document.getElementById('bookSelCount').textContent = `${bookSelected.size} 件を選択中`;
+    const disabled = bookSelected.size === 0;
+    document.getElementById('bookGenEpub').disabled = disabled;
+    document.getElementById('bookGenPdf').disabled = disabled;
+}
+
+function openBook() {
+    renderBookList();
+    updateBookCount();
+    document.getElementById('bookOverlay').classList.add('open');
+}
+
+function getSelectedBookRecipes() {
+    return getCombinedRecipes().filter(r => bookSelected.has(r.id));
+}
+
+// Build the inner HTML for one recipe (shared by EPUB chapter + PDF print)
+function bookRecipeInnerHtml(recipe, imgSrcFn) {
+    const rows = Object.keys(BOOK_LABELS)
+        .filter(k => recipe.settings[k] != null && recipe.settings[k] !== '')
+        .map(k => `<tr><th>${escHtml(BOOK_LABELS[k])}</th><td>${escHtml(recipe.settings[k])}</td></tr>`)
+        .join('');
+    const photos = bookGetPhotos(recipe);
+    const photosHtml = photos.map((p, i) => `<img src="${imgSrcFn(recipe, i, p)}" alt="">`).join('');
+    const genLabel = recipe.isMyRecipe ? 'マイレシピ' : (recipe.generation || '');
+    const notes = recipe.notes ? `<div class="book-print-notes">${escHtml(recipe.notes)}</div>` : '';
+    return { rows, photosHtml, genLabel, notes };
+}
+
+// ---- PDF via browser print ----
+function generateBookPdf() {
+    const recipes = getSelectedBookRecipes();
+    if (recipes.length === 0) return;
+    const bookTitle = document.getElementById('bookTitleInput').value.trim() || 'マイ フィルムレシピブック';
+
+    let root = document.querySelector('.book-print-root');
+    if (root) root.remove();
+    root = document.createElement('div');
+    root.className = 'book-print-root';
+
+    const today = new Date().toLocaleDateString('ja-JP');
+    let html = `<div class="book-print-cover"><h1>${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes<br>${escHtml(String(recipes.length))} レシピ ／ ${escHtml(today)}</p></div>`;
+    recipes.forEach(r => {
+        const { rows, photosHtml, genLabel, notes } = bookRecipeInnerHtml(r, (rec, i, p) => p);
+        html += `<div class="book-print-recipe">
+            <h2>${escHtml(r.title)}</h2>
+            <p class="gen">${escHtml(genLabel)}</p>
+            <table class="book-print-table"><tbody>${rows}</tbody></table>
+            ${notes}
+            <div class="book-print-photos">${photosHtml}</div>
+        </div>`;
+    });
+    root.innerHTML = html;
+    document.body.appendChild(root);
+    document.body.classList.add('book-printing');
+
+    const cleanup = () => {
+        document.body.classList.remove('book-printing');
+        if (root && root.parentNode) root.remove();
+        window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(() => { window.print(); }, 200);
+}
+
+// ---- EPUB via pure-JS ZIP (store, no compression) ----
+const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        t[n] = c >>> 0;
+    }
+    return t;
+})();
+function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function dataUriToBytes(uri) {
+    const comma = uri.indexOf(',');
+    const meta = uri.slice(5, comma); // after "data:"
+    const isB64 = /;base64/i.test(meta);
+    const mime = meta.split(';')[0] || 'image/jpeg';
+    const dataPart = uri.slice(comma + 1);
+    let bytes;
+    if (isB64) {
+        const bin = atob(dataPart);
+        bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    } else {
+        bytes = new TextEncoder().encode(decodeURIComponent(dataPart));
+    }
+    return { mime, bytes };
+}
+function buildZip(files) {
+    // files: [{ name, bytes(Uint8Array) }]
+    const enc = new TextEncoder();
+    const parts = [];
+    const central = [];
+    let offset = 0;
+    const u16 = n => new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF]);
+    const u32 = n => new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF]);
+    files.forEach(f => {
+        const nameBytes = enc.encode(f.name);
+        const crc = crc32(f.bytes);
+        const size = f.bytes.length;
+        const local = [];
+        local.push(u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0), u32(crc), u32(size), u32(size), u16(nameBytes.length), u16(0), nameBytes, f.bytes);
+        local.forEach(p => parts.push(p));
+        const localSize = 30 + nameBytes.length + size;
+        central.push({ nameBytes, crc, size, offset });
+        offset += localSize;
+    });
+    const cdStart = offset;
+    let cdSize = 0;
+    central.forEach(c => {
+        const rec = [];
+        rec.push(u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0), u32(c.crc), u32(c.size), u32(c.size), u16(c.nameBytes.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(c.offset), c.nameBytes);
+        rec.forEach(p => parts.push(p));
+        cdSize += 46 + c.nameBytes.length;
+    });
+    parts.push(u32(0x06054b50), u16(0), u16(0), u16(central.length), u16(central.length), u32(cdSize), u32(cdStart), u16(0));
+    return new Blob(parts, { type: 'application/epub+zip' });
+}
+
+function generateBookEpub() {
+    const recipes = getSelectedBookRecipes();
+    if (recipes.length === 0) return;
+    const bookTitle = document.getElementById('bookTitleInput').value.trim() || 'マイ フィルムレシピブック';
+    const enc = new TextEncoder();
+    const files = [];
+    // mimetype MUST be first
+    files.push({ name: 'mimetype', bytes: enc.encode('application/epub+zip') });
+    files.push({ name: 'META-INF/container.xml', bytes: enc.encode(
+`<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
+</container>`) });
+    files.push({ name: 'OEBPS/style.css', bytes: enc.encode(
+`body{font-family:sans-serif;line-height:1.7;margin:1em;}
+h1{font-size:1.5em;border-bottom:2px solid #333;padding-bottom:.3em;}
+.gen{color:#666;font-size:.85em;margin:.2em 0 1em;}
+table{width:100%;border-collapse:collapse;margin:1em 0;}
+th,td{text-align:left;padding:.4em .5em;border-bottom:1px solid #ccc;font-size:.95em;}
+th{width:42%;color:#333;}
+img{max-width:100%;margin:.5em 0;}
+.notes{border-left:3px solid #999;padding-left:.75em;white-space:pre-wrap;margin-top:1em;}`) });
+
+    const manifestItems = [];
+    const spineItems = [];
+    const navLis = [];
+
+    // Cover
+    const coverXhtml =
+`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><title>${escHtml(bookTitle)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
+<body><div style="text-align:center;margin-top:30%;"><h1 style="border:none;">${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes</p><p>${escHtml(String(recipes.length))} レシピ</p></div></body></html>`;
+    files.push({ name: 'OEBPS/cover.xhtml', bytes: enc.encode(coverXhtml) });
+    manifestItems.push('<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>');
+    spineItems.push('<itemref idref="cover"/>');
+
+    let imgId = 0;
+    recipes.forEach((r, ri) => {
+        const chapId = `ch${ri}`;
+        const photos = bookGetPhotos(r);
+        const imgRefs = [];
+        photos.forEach(p => {
+            try {
+                const { mime, bytes } = dataUriToBytes(p);
+                const ext = mime.indexOf('png') >= 0 ? 'png' : (mime.indexOf('webp') >= 0 ? 'webp' : 'jpg');
+                const name = `images/img${imgId}.${ext}`;
+                files.push({ name: 'OEBPS/' + name, bytes });
+                manifestItems.push(`<item id="img${imgId}" href="${name}" media-type="${mime}"/>`);
+                imgRefs.push(name);
+                imgId++;
+            } catch (e) { /* skip bad image */ }
+        });
+        const { rows, genLabel, notes } = bookRecipeInnerHtml(r, () => '');
+        const photosHtml = imgRefs.map(n => `<img src="${n}" alt=""/>`).join('');
+        const notesHtml = r.notes ? `<div class="notes">${escHtml(r.notes)}</div>` : '';
+        const chapXhtml =
+`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><title>${escHtml(r.title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
+<body><h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p><table><tbody>${rows}</tbody></table>${notesHtml}${photosHtml}</body></html>`;
+        files.push({ name: `OEBPS/${chapId}.xhtml`, bytes: enc.encode(chapXhtml) });
+        manifestItems.push(`<item id="${chapId}" href="${chapId}.xhtml" media-type="application/xhtml+xml"/>`);
+        spineItems.push(`<itemref idref="${chapId}"/>`);
+        navLis.push(`<li><a href="${chapId}.xhtml">${escHtml(r.title)}</a></li>`);
+    });
+
+    // nav.xhtml (EPUB3 TOC)
+    const navXhtml =
+`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><meta charset="utf-8"/><title>目次</title></head>
+<body><nav epub:type="toc" id="toc"><h1>目次</h1><ol>${navLis.map(li => li.replace('<li>', '<li>')).join('')}</ol></nav></body></html>`;
+    files.push({ name: 'OEBPS/nav.xhtml', bytes: enc.encode(navXhtml) });
+    manifestItems.push('<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>');
+
+    const uid = 'urn:uuid:fuji-' + Date.now();
+    const opf =
+`<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="bookid">${uid}</dc:identifier>
+    <dc:title>${escHtml(bookTitle)}</dc:title>
+    <dc:language>ja</dc:language>
+    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}</meta>
+  </metadata>
+  <manifest>${manifestItems.join('')}</manifest>
+  <spine>${spineItems.join('')}</spine>
+</package>`;
+    files.push({ name: 'OEBPS/content.opf', bytes: enc.encode(opf) });
+
+    const blob = buildZip(files);
+    const safeTitle = bookTitle.replace(/[\\/:*?"<>|]/g, '_').slice(0, 40);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safeTitle}.epub`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function setupBook() {
+    const overlay = document.getElementById('bookOverlay');
+    document.getElementById('bookBtn').addEventListener('click', openBook);
+    document.getElementById('bookClose').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+    document.getElementById('bookSearch').addEventListener('input', renderBookList);
+    document.getElementById('bookList').addEventListener('change', (e) => {
+        const row = e.target.closest('.book-row');
+        if (!row) return;
+        const id = row.dataset.id;
+        if (e.target.checked) bookSelected.add(id); else bookSelected.delete(id);
+        row.classList.toggle('selected', e.target.checked);
+        updateBookCount();
+    });
+    document.getElementById('bookSelMy').addEventListener('click', () => {
+        myRecipes.forEach(r => bookSelected.add(r.id));
+        renderBookList();
+        updateBookCount();
+    });
+    document.getElementById('bookSelClear').addEventListener('click', () => {
+        bookSelected.clear();
+        renderBookList();
+        updateBookCount();
+    });
+    document.getElementById('bookGenEpub').addEventListener('click', () => {
+        try { generateBookEpub(); } catch (e) { alert('EPUB生成に失敗しました: ' + e.message); }
+    });
+    document.getElementById('bookGenPdf').addEventListener('click', () => {
+        overlay.classList.remove('open');
+        try { generateBookPdf(); } catch (e) { alert('PDF生成に失敗しました: ' + e.message); }
+    });
+}
+
 // ===== Evolution Graph =====
 const EVO_KEYS = ['highlight_tone', 'shadow_tone', 'color', 'sharpness', 'noise_reduction', 'clarity', 'exposure_compensation'];
 const EVO_LABELS = { highlight_tone: 'ハイライト', shadow_tone: 'シャドー', color: 'カラー', sharpness: 'シャープネス', noise_reduction: 'NR', clarity: 'クラリティ', exposure_compensation: '露出補正' };
@@ -15430,6 +15869,7 @@ function setupEventListeners() {
     setupHueMap();
     setupTimer();
     setupEvo();
+    setupBook();
     populateLocationFilter();
 
     document.getElementById('locationInput').addEventListener('change', saveMemoForRecipe);
@@ -15440,7 +15880,8 @@ function setupEventListeners() {
     const timerOverlay = document.getElementById('timerOverlay');
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (document.getElementById('evoOverlay').classList.contains('open')) { document.getElementById('evoOverlay').classList.remove('open'); }
+            if (document.getElementById('bookOverlay').classList.contains('open')) { document.getElementById('bookOverlay').classList.remove('open'); }
+            else if (document.getElementById('evoOverlay').classList.contains('open')) { document.getElementById('evoOverlay').classList.remove('open'); }
             else if (timerOverlay.classList.contains('open')) { timerOverlay.classList.remove('open'); if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
             else if (huemapOverlay.classList.contains('open')) { huemapOverlay.classList.remove('open'); }
             else if (blendOverlay.classList.contains('open')) { blendOverlay.classList.remove('open'); }
