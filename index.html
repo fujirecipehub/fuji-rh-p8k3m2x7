@@ -2414,19 +2414,30 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 
 /* Print layout for PDF book */
 @media print {
-    body.book-printing > *:not(.book-print-root) { display: none !important; }
-    .book-print-root { display: block !important; }
-    .book-print-cover { text-align: center; padding: 30vh 2rem 0; page-break-after: always; }
-    .book-print-cover h1 { font-size: 28pt; margin: 0 0 1rem; }
-    .book-print-cover p { font-size: 12pt; color: #555; }
-    .book-print-recipe { page-break-after: always; padding: 1.5rem 0; }
-    .book-print-recipe h2 { font-size: 20pt; margin: 0 0 0.5rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; }
-    .book-print-recipe .gen { font-size: 10pt; color: #666; margin: 0 0 1rem; }
-    .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-    .book-print-table th, .book-print-table td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; }
-    .book-print-table th { width: 42%; color: #333; font-weight: 700; }
-    .book-print-photos img { width: 100%; max-height: 8.5in; object-fit: contain; margin-bottom: 0.5rem; page-break-inside: avoid; }
-    .book-print-notes { font-size: 11pt; white-space: pre-wrap; border-left: 3px solid #999; padding-left: 0.75rem; margin-top: 1rem; }
+    /* Override the app's dark theme + the other print block's body-wide hide */
+    html:has(body.book-printing), body.book-printing { background: #fff !important; color-scheme: light; }
+    body.book-printing * { visibility: hidden !important; }
+    body.book-printing .book-print-root,
+    body.book-printing .book-print-root * { visibility: visible !important; }
+    body.book-printing .book-print-root {
+        display: block !important; position: absolute; left: 0; top: 0; width: 100%;
+        background: #fff !important; color: #000 !important;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    body.book-printing .book-print-cover { text-align: center; padding: 30vh 2rem 0; page-break-after: always; }
+    body.book-printing .book-print-cover h1 { font-size: 28pt; margin: 0 0 1rem; color: #000 !important; }
+    body.book-printing .book-print-cover p { font-size: 12pt; color: #555 !important; }
+    body.book-printing .book-print-recipe { page-break-after: always; padding: 1.5rem 0; }
+    body.book-printing .book-print-recipe h2 { font-size: 20pt; margin: 0 0 0.5rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; color: #000 !important; }
+    body.book-printing .book-print-recipe .gen { font-size: 10pt; color: #666 !important; margin: 0 0 1rem; }
+    body.book-printing .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+    body.book-printing .book-print-table th, body.book-printing .book-print-table td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; color: #111 !important; }
+    body.book-printing .book-print-table th { width: 42%; color: #333 !important; font-weight: 700; }
+    body.book-printing .book-print-photos img { width: 100%; max-height: 8.5in; object-fit: contain; margin-bottom: 0.5rem; page-break-inside: avoid; }
+    body.book-printing .book-print-notes { font-size: 11pt; white-space: pre-wrap; border-left: 3px solid #999; padding-left: 0.75rem; margin-top: 1rem; color: #111 !important; }
+    body.book-printing #printArea { display: none !important; }
+    @page { margin: 12mm; }
 }
 .book-print-root { display: none; }
 
