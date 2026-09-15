@@ -2430,8 +2430,10 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
         -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
     body.book-printing .book-print-cover { text-align: center; padding: 30vh 2rem 0; page-break-after: always; }
+    body.book-printing .book-print-cover.has-img { padding-top: 10vh; }
     body.book-printing .book-print-cover h1 { font-size: 28pt; margin: 0 0 1rem; color: #000 !important; }
     body.book-printing .book-print-cover p { font-size: 12pt; color: #555 !important; }
+    body.book-printing .book-cover-img { display: block; margin: 1.5rem auto 0; max-width: 100%; max-height: 16cm; object-fit: contain; page-break-inside: avoid; }
     body.book-printing .book-print-recipe { page-break-after: always; padding: 0.5rem 0; }
     body.book-printing .book-print-recipe h2 { font-size: 20pt; margin: 0 0 0.4rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; color: #000 !important; }
     body.book-printing .book-print-recipe .gen { font-size: 10pt; color: #666 !important; margin: 0 0 0.6rem; }
@@ -2444,7 +2446,9 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
     body.book-printing .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; page-break-inside: avoid; }
     body.book-printing .book-print-table th, body.book-printing .book-print-table td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; color: #111 !important; }
     body.book-printing .book-print-table th { width: 42%; color: #333 !important; font-weight: 700; }
-    body.book-printing .book-print-notes { font-size: 11pt; white-space: pre-wrap; border-left: 3px solid #999; padding-left: 0.75rem; margin-top: 1rem; color: #111 !important; }
+    body.book-printing .book-print-notes { margin-top: 1rem; border-left: 3px solid #999; padding-left: 0.75rem; page-break-inside: avoid; }
+    body.book-printing .book-note-meta { font-size: 11pt; color: #444 !important; margin-bottom: 0.4rem; }
+    body.book-printing .book-note-body { font-size: 11pt; white-space: pre-wrap; color: #111 !important; line-height: 1.7; }
     @page { margin: 12mm; }
 }
 .book-print-root { display: none; }
@@ -13694,6 +13698,15 @@ function bookGetPhotos(recipe) {
     return recipePhotos[recipe.id] || [];
 }
 
+// First available photo among the selected recipes, used for the cover
+function bookCoverPhoto(recipes) {
+    for (const r of recipes) {
+        const p = bookGetPhotos(r);
+        if (p.length) return p[0];
+    }
+    return null;
+}
+
 function escHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -13744,6 +13757,34 @@ function getSelectedBookRecipes() {
 }
 
 // Build the inner HTML for one recipe (shared by EPUB chapter + PDF print)
+// Collect all the user-written text for a recipe (location, rating, tags, memo, myRecipe notes)
+function bookCollectNotes(recipe) {
+    const memos = getMemos();
+    const locs = getLocations();
+    const tags = getSceneTags();
+    const meta = [];
+    const loc = locs[recipe.id];
+    if (loc) meta.push('📍 ' + loc);
+    const m = memos[recipe.id] || {};
+    if (m.rating) meta.push('★'.repeat(m.rating) + '☆'.repeat(Math.max(0, 5 - m.rating)));
+    const t = tags[recipe.id];
+    if (t && t.length) meta.push(t.map(x => '#' + x).join('  '));
+    const body = [];
+    if (m.memo) body.push(m.memo);
+    if (recipe.notes && recipe.notes !== m.memo) body.push(recipe.notes);
+    return { metaLine: meta.join('　'), bodyText: body.join('\n\n') };
+}
+
+// Build the notes block markup. cls is the wrapper class (differs PDF vs EPUB).
+function bookNotesBlockHtml(recipe, cls) {
+    const { metaLine, bodyText } = bookCollectNotes(recipe);
+    if (!metaLine && !bodyText) return '';
+    let inner = '';
+    if (metaLine) inner += `<div class="book-note-meta">${escHtml(metaLine)}</div>`;
+    if (bodyText) inner += `<div class="book-note-body">${escHtml(bodyText)}</div>`;
+    return `<div class="${cls}">${inner}</div>`;
+}
+
 function bookRecipeInnerHtml(recipe, imgSrcFn) {
     const rows = Object.keys(BOOK_LABELS)
         .filter(k => recipe.settings[k] != null && recipe.settings[k] !== '')
@@ -13752,7 +13793,7 @@ function bookRecipeInnerHtml(recipe, imgSrcFn) {
     const photos = bookGetPhotos(recipe);
     const photosHtml = photos.map((p, i) => `<img src="${imgSrcFn(recipe, i, p)}" alt="">`).join('');
     const genLabel = recipe.isMyRecipe ? 'マイレシピ' : (recipe.generation || '');
-    const notes = recipe.notes ? `<div class="book-print-notes">${escHtml(recipe.notes)}</div>` : '';
+    const notes = bookNotesBlockHtml(recipe, 'book-print-notes');
     return { rows, photosHtml, genLabel, notes };
 }
 
@@ -13768,7 +13809,8 @@ function generateBookPdf() {
     root.className = 'book-print-root';
 
     const today = new Date().toLocaleDateString('ja-JP');
-    let html = `<div class="book-print-cover"><h1>${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes<br>${escHtml(String(recipes.length))} レシピ ／ ${escHtml(today)}</p></div>`;
+    const coverImg = bookCoverPhoto(recipes);
+    let html = `<div class="book-print-cover${coverImg ? ' has-img' : ''}"><h1>${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes<br>${escHtml(String(recipes.length))} レシピ ／ ${escHtml(today)}</p>${coverImg ? `<img class="book-cover-img" src="${coverImg}" alt="">` : ''}</div>`;
     recipes.forEach(r => {
         const { rows, photosHtml, genLabel, notes } = bookRecipeInnerHtml(r, (rec, i, p) => p);
         html += `<div class="book-print-recipe">
@@ -13879,18 +13921,32 @@ table{width:100%;border-collapse:collapse;margin:1em 0;}
 th,td{text-align:left;padding:.4em .5em;border-bottom:1px solid #ccc;font-size:.95em;}
 th{width:42%;color:#333;}
 img{max-width:100%;margin:.5em 0;}
-.notes{border-left:3px solid #999;padding-left:.75em;white-space:pre-wrap;margin-top:1em;}`) });
+.notes{border-left:3px solid #999;padding-left:.75em;margin-top:1em;}
+.book-note-meta{color:#444;margin-bottom:.4em;}
+.book-note-body{white-space:pre-wrap;line-height:1.7;}`) });
 
     const manifestItems = [];
     const spineItems = [];
     const navLis = [];
 
-    // Cover
+    // Cover (with an image if any selected recipe has a photo)
+    let coverImgTag = '';
+    const coverPhoto = bookCoverPhoto(recipes);
+    if (coverPhoto) {
+        try {
+            const { mime, bytes } = dataUriToBytes(coverPhoto);
+            const ext = mime.indexOf('png') >= 0 ? 'png' : (mime.indexOf('webp') >= 0 ? 'webp' : 'jpg');
+            const name = `images/cover.${ext}`;
+            files.push({ name: 'OEBPS/' + name, bytes });
+            manifestItems.push(`<item id="coverimg" href="${name}" media-type="${mime}" properties="cover-image"/>`);
+            coverImgTag = `<p><img src="${name}" alt="" style="max-width:100%;max-height:60%;"/></p>`;
+        } catch (e) { /* skip bad cover image */ }
+    }
     const coverXhtml =
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><title>${escHtml(bookTitle)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body><div style="text-align:center;margin-top:30%;"><h1 style="border:none;">${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes</p><p>${escHtml(String(recipes.length))} レシピ</p></div></body></html>`;
+<body><div style="text-align:center;margin-top:10%;"><h1 style="border:none;">${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes</p><p>${escHtml(String(recipes.length))} レシピ</p>${coverImgTag}</div></body></html>`;
     files.push({ name: 'OEBPS/cover.xhtml', bytes: enc.encode(coverXhtml) });
     manifestItems.push('<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>');
     spineItems.push('<itemref idref="cover"/>');
@@ -13913,7 +13969,7 @@ img{max-width:100%;margin:.5em 0;}
         });
         const { rows, genLabel, notes } = bookRecipeInnerHtml(r, () => '');
         const photosHtml = imgRefs.map(n => `<img src="${n}" alt=""/>`).join('');
-        const notesHtml = r.notes ? `<div class="notes">${escHtml(r.notes)}</div>` : '';
+        const notesHtml = bookNotesBlockHtml(r, 'notes');
         const chapXhtml =
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
