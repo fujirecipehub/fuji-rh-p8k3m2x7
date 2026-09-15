@@ -11804,8 +11804,10 @@ function importBackup() {
                 recipePhotos = data.recipePhotos;
             }
 
-            renderCards();
-            updateFavCount();
+            await loadMyRecipes();
+            populateFilters();
+            renderRecipes();
+            updateFavCounter();
             alert('復元が完了しました！');
         } catch (err) {
             alert('復元に失敗しました: ' + err.message);
