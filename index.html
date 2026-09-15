@@ -2412,6 +2412,16 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 .book-gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .book-hint { font-size: 0.75rem; color: var(--text-muted); margin: 0.85rem 0 0; line-height: 1.5; }
 
+/* Auto photo comment button */
+.auto-comment-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;
+    padding: 0.5rem 0.85rem; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+    border: 2px solid var(--accent-gold); border-radius: 8px; background: transparent; color: var(--accent-gold);
+}
+.auto-comment-btn:hover { background: var(--accent-gold); color: #1a1a1a; }
+.auto-comment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.auto-comment-btn svg { width: 16px; height: 16px; }
+
 /* Print layout for PDF book */
 @media print {
     /* Override the app's dark theme */
@@ -3955,6 +3965,10 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
 
                         <div class="form-section">
                             <label class="form-label">メモ</label>
+                            <button type="button" id="autoCommentBtn" class="auto-comment-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                                写真から自動コメント
+                            </button>
                             <textarea id="myNotes" class="form-textarea" rows="3" placeholder="このレシピについてのメモ..."></textarea>
                         </div>
                     </div>
@@ -15365,6 +15379,58 @@ function analyzeImage(img) {
     };
 }
 
+// Generate a Japanese photo description from image analysis (free, offline, no AI API)
+function hueNameJa(h) {
+    if (h < 20 || h >= 340) return '赤';
+    if (h < 45) return 'オレンジ';
+    if (h < 70) return '黄';
+    if (h < 160) return '緑';
+    if (h < 200) return 'シアン';
+    if (h < 255) return '青';
+    if (h < 290) return '紫';
+    return 'マゼンタ';
+}
+function generatePhotoComment(a) {
+    const bright = a.brightness < 0.35 ? '暗めのローキーな' : (a.brightness > 0.68 ? '明るくハイキーな' : '標準的な明るさの');
+    const cont = a.contrast < 0.4 ? 'コントラストは控えめで、やわらかい印象' : (a.contrast > 0.7 ? 'コントラストが高く、メリハリのある仕上がり' : '程よいコントラスト');
+    if (a.isMono) {
+        return `${bright}モノクロ写真。${cont}。`;
+    }
+    const warm = a.warmth > 0.62 ? '暖色寄りの色み' : (a.warmth < 0.38 ? '寒色寄りの色み' : 'ニュートラルな色み');
+    const sat = a.saturation < 0.25 ? '彩度は低めで落ち着いた' : (a.saturation > 0.55 ? '彩度が高く鮮やかな' : '自然な彩度の');
+    const hue = hueNameJa(a.avgHue);
+    return `${warm}で${bright}、${sat}カラー写真。${hue}系がベースで、${cont}。`;
+}
+function runAutoComment() {
+    const btn = document.getElementById('autoCommentBtn');
+    if (!uploadedImages || uploadedImages.length === 0) {
+        alert('先に写真をアップロードしてください');
+        return;
+    }
+    btn.disabled = true;
+    const prev = btn.innerHTML;
+    btn.textContent = '解析中...';
+    const img = new Image();
+    img.onload = () => {
+        try {
+            const analysis = analyzeImage(img);
+            const comment = generatePhotoComment(analysis);
+            const ta = document.getElementById('myNotes');
+            ta.value = ta.value.trim() ? (ta.value.trim() + '\n' + comment) : comment;
+        } catch (e) {
+            alert('解析に失敗しました: ' + e.message);
+        }
+        btn.disabled = false;
+        btn.innerHTML = prev;
+    };
+    img.onerror = () => {
+        alert('画像の読み込みに失敗しました');
+        btn.disabled = false;
+        btn.innerHTML = prev;
+    };
+    img.src = uploadedImages[0];
+}
+
 function settingsAdjust(recipe) {
     let satAdj = 0, contAdj = 0, brightAdj = 0;
     const s = recipe.settings;
@@ -15976,6 +16042,7 @@ function setupEventListeners() {
     setupTimer();
     setupEvo();
     setupBook();
+    document.getElementById('autoCommentBtn').addEventListener('click', runAutoComment);
     populateLocationFilter();
 
     document.getElementById('locationInput').addEventListener('change', saveMemoForRecipe);
