@@ -2447,6 +2447,7 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
     body.book-printing .book-print-table th, body.book-printing .book-print-table td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; color: #111 !important; }
     body.book-printing .book-print-table th { width: 42%; color: #333 !important; font-weight: 700; }
     body.book-printing .book-print-notes { margin-top: 1rem; border-left: 3px solid #999; padding-left: 0.75rem; page-break-inside: avoid; }
+    body.book-printing .book-note-shoot { font-size: 10.5pt; color: #222 !important; font-weight: 700; margin-bottom: 0.35rem; }
     body.book-printing .book-note-meta { font-size: 11pt; color: #444 !important; margin-bottom: 0.4rem; }
     body.book-printing .book-note-body { font-size: 11pt; white-space: pre-wrap; color: #111 !important; line-height: 1.7; }
     @page { margin: 12mm; }
@@ -12341,10 +12342,10 @@ function openCreateModal(existingRecipe = null) {
     document.getElementById('myNotes').value = existingRecipe ? (existingRecipe.notes || '') : '';
 
     const meta = existingRecipe && existingRecipe.meta ? existingRecipe.meta : {};
-    if (meta.camera) createModal.dataset.camera = meta.camera;
-    else delete createModal.dataset.camera;
-    if (meta.shotDate) createModal.dataset.shotDate = meta.shotDate;
-    else delete createModal.dataset.shotDate;
+    ['camera', 'shotDate', 'lens', 'aperture', 'shutter', 'iso', 'focal'].forEach(k => {
+        if (meta[k]) createModal.dataset[k] = meta[k];
+        else delete createModal.dataset[k];
+    });
 
     renderUploadPreviews();
     createModal.classList.add('open');
@@ -12357,8 +12358,7 @@ function closeCreateModal() {
     document.body.style.overflow = '';
     editingRecipeId = null;
     uploadedImages = [];
-    delete createModal.dataset.camera;
-    delete createModal.dataset.shotDate;
+    ['camera', 'shotDate', 'lens', 'aperture', 'shutter', 'iso', 'focal'].forEach(k => delete createModal.dataset[k]);
 }
 
 const IMAGE_MAX = 3;
@@ -12437,6 +12437,7 @@ function parseExifBlock(view, tiffStart, maxLen) {
     const le = !bo;
     const g16 = (o) => view.getUint16(tiffStart + o, le);
     const g32 = (o) => view.getUint32(tiffStart + o, le);
+    const gRat = (o) => { const n = view.getUint32(tiffStart + o, le); const d = view.getUint32(tiffStart + o + 4, le); return d ? n / d : 0; };
 
     if (g16(2) !== 0x002A) return null;
     const ifd0off = g32(4);
@@ -12472,6 +12473,10 @@ function parseExifBlock(view, tiffStart, maxLen) {
             const vo = g32(eo + 8);
             if (tag === 0x927C) makerNoteOff = vo;
             if (tag === 0x8827) isoVal = type === 3 ? '' + g16(eo + 8) : '' + g32(eo + 8);
+            if (tag === 0x829D) { const v = gRat(vo); if (v) result.aperture = 'F' + (Math.round(v * 10) / 10); }
+            if (tag === 0x829A) { const v = gRat(vo); if (v) result.shutter = v >= 1 ? (Math.round(v * 10) / 10) + '"' : '1/' + Math.round(1 / v); }
+            if (tag === 0x920A) { const v = gRat(vo); if (v) result.focal = Math.round(v) + 'mm'; }
+            if (tag === 0xA434) result.lens = readExifString(view, tiffStart, type, count, vo, eo + 8, le).trim();
             if (tag === 0x9003) dateTimeOriginal = readExifString(view, tiffStart, type, count, vo, eo + 8, le);
             if (tag === 0x9204) {
                 const num = view.getInt32(tiffStart + vo, le);
@@ -12757,6 +12762,12 @@ function applyExifToForm(exif) {
         createModal.dataset.shotDate = exif.dateTimeOriginal;
         applied = true;
     }
+    // Shooting info (only set when known)
+    if (exif.lens) { createModal.dataset.lens = exif.lens; applied = true; }
+    if (exif.aperture) { createModal.dataset.aperture = exif.aperture; applied = true; }
+    if (exif.shutter) { createModal.dataset.shutter = exif.shutter; applied = true; }
+    if (exif.iso) { createModal.dataset.iso = exif.iso; applied = true; }
+    if (exif.focal) { createModal.dataset.focal = exif.focal; applied = true; }
 
     if (exif.filmSimulation) {
         const sel = document.getElementById('myFilmSim');
@@ -12904,7 +12915,12 @@ async function saveMyRecipe() {
         notes: document.getElementById('myNotes').value.trim(),
         meta: {
             camera: createModal.dataset.camera || '',
-            shotDate: createModal.dataset.shotDate || ''
+            shotDate: createModal.dataset.shotDate || '',
+            lens: createModal.dataset.lens || '',
+            aperture: createModal.dataset.aperture || '',
+            shutter: createModal.dataset.shutter || '',
+            iso: createModal.dataset.iso || '',
+            focal: createModal.dataset.focal || ''
         },
         createdAt: editingRecipeId
             ? (myRecipes.find(r => r.id === editingRecipeId)?.createdAt || Date.now())
@@ -13762,24 +13778,34 @@ function bookCollectNotes(recipe) {
     const memos = getMemos();
     const locs = getLocations();
     const tags = getSceneTags();
-    const meta = [];
+    // Shooting info from EXIF (stored in recipe.meta at upload); skip unknowns
+    const meta = recipe.meta || {};
+    const shoot = [];
+    if (meta.camera) shoot.push('📷 ' + meta.camera);
+    if (meta.lens) shoot.push(meta.lens);
+    if (meta.focal) shoot.push(meta.focal);
+    if (meta.aperture) shoot.push(meta.aperture);
+    if (meta.shutter) shoot.push(meta.shutter);
+    if (meta.iso) shoot.push('ISO' + meta.iso);
+    const metaArr = [];
     const loc = locs[recipe.id];
-    if (loc) meta.push('📍 ' + loc);
+    if (loc) metaArr.push('📍 ' + loc);
     const m = memos[recipe.id] || {};
-    if (m.rating) meta.push('★'.repeat(m.rating) + '☆'.repeat(Math.max(0, 5 - m.rating)));
+    if (m.rating) metaArr.push('★'.repeat(m.rating) + '☆'.repeat(Math.max(0, 5 - m.rating)));
     const t = tags[recipe.id];
-    if (t && t.length) meta.push(t.map(x => '#' + x).join('  '));
+    if (t && t.length) metaArr.push(t.map(x => '#' + x).join('  '));
     const body = [];
     if (m.memo) body.push(m.memo);
     if (recipe.notes && recipe.notes !== m.memo) body.push(recipe.notes);
-    return { metaLine: meta.join('　'), bodyText: body.join('\n\n') };
+    return { shootLine: shoot.join('　'), metaLine: metaArr.join('　'), bodyText: body.join('\n\n') };
 }
 
 // Build the notes block markup. cls is the wrapper class (differs PDF vs EPUB).
 function bookNotesBlockHtml(recipe, cls) {
-    const { metaLine, bodyText } = bookCollectNotes(recipe);
-    if (!metaLine && !bodyText) return '';
+    const { shootLine, metaLine, bodyText } = bookCollectNotes(recipe);
+    if (!shootLine && !metaLine && !bodyText) return '';
     let inner = '';
+    if (shootLine) inner += `<div class="book-note-shoot">${escHtml(shootLine)}</div>`;
     if (metaLine) inner += `<div class="book-note-meta">${escHtml(metaLine)}</div>`;
     if (bodyText) inner += `<div class="book-note-body">${escHtml(bodyText)}</div>`;
     return `<div class="${cls}">${inner}</div>`;
@@ -13922,6 +13948,7 @@ th,td{text-align:left;padding:.4em .5em;border-bottom:1px solid #ccc;font-size:.
 th{width:42%;color:#333;}
 img{max-width:100%;margin:.5em 0;}
 .notes{border-left:3px solid #999;padding-left:.75em;margin-top:1em;}
+.book-note-shoot{color:#222;font-weight:700;margin-bottom:.35em;}
 .book-note-meta{color:#444;margin-bottom:.4em;}
 .book-note-body{white-space:pre-wrap;line-height:1.7;}`) });
 
