@@ -14174,7 +14174,7 @@ function buildZip(files) {
     return new Blob(parts, { type: 'application/epub+zip' });
 }
 
-function generateBookEpub() {
+async function generateBookEpub() {
     const recipes = getSelectedBookRecipes();
     if (recipes.length === 0) return;
     const bookTitle = document.getElementById('bookTitleInput').value.trim() || 'マイ フィルムレシピブック';
@@ -14199,7 +14199,13 @@ img{max-width:100%;margin:.5em 0;}
 .chap-sim{color:#a06a00;font-weight:700;font-size:.8em;letter-spacing:.05em;margin:0 0 .3em;}
 .book-note-shoot{color:#222;font-weight:700;margin-bottom:.35em;}
 .book-note-meta{color:#444;margin-bottom:.4em;}
-.book-note-body{white-space:pre-wrap;line-height:1.7;}`) });
+.book-note-body{white-space:pre-wrap;line-height:1.7;}
+.rsplit{margin:.5em 0;}
+.rphoto{float:left;width:60%;padding-right:4%;box-sizing:border-box;}
+.rphoto img{max-width:100%;margin:0 0 .5em;}
+.rinfo{overflow:hidden;}
+.rinfo table{margin-top:0;}
+.rclear{clear:both;}`) });
 
     const manifestItems = [];
     const spineItems = [];
@@ -14227,6 +14233,14 @@ img{max-width:100%;margin:.5em 0;}
     manifestItems.push('<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>');
     spineItems.push('<itemref idref="cover"/>');
 
+    // Detect first-photo orientation per recipe (portrait → photo beside settings, like the PDF)
+    const orient = {};
+    await Promise.all(recipes.map(async r => {
+        const ph = bookGetPhotos(r);
+        if (ph.length) { const sz = await imgSize(ph[0]); orient[r.id] = sz ? (sz.h > sz.w * 1.05) : false; }
+        else orient[r.id] = false;
+    }));
+
     let imgId = 0;
     let ri = 0;
     const groups = bookGroupBySim(recipes);
@@ -14252,11 +14266,15 @@ img{max-width:100%;margin:.5em 0;}
             const photosHtml = imgRefs.map(n => `<img src="${n}" alt=""/>`).join('');
             const notesHtml = bookNotesBlockHtml(r, 'notes');
             const chapLabel = multiGroup && gi === 0 ? `<p class="chap-sim">${escHtml(g.sim)}</p>` : '';
+            const header = `${chapLabel}<h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p>`;
+            const body = (orient[r.id] && photosHtml)
+                ? `${header}<div class="rsplit"><div class="rphoto">${photosHtml}</div><div class="rinfo"><table><tbody>${rows}</tbody></table>${notesHtml}</div><div class="rclear"></div></div>`
+                : `${header}${photosHtml}<table><tbody>${rows}</tbody></table>${notesHtml}`;
             const chapXhtml =
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><title>${escHtml(r.title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body>${chapLabel}<h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p>${photosHtml}<table><tbody>${rows}</tbody></table>${notesHtml}</body></html>`;
+<body>${body}</body></html>`;
             files.push({ name: `OEBPS/${chapId}.xhtml`, bytes: enc.encode(chapXhtml) });
             manifestItems.push(`<item id="${chapId}" href="${chapId}.xhtml" media-type="application/xhtml+xml"/>`);
             spineItems.push(`<itemref idref="${chapId}"/>`);
@@ -14329,8 +14347,8 @@ function setupBook() {
         renderBookList();
         updateBookCount();
     });
-    document.getElementById('bookGenEpub').addEventListener('click', () => {
-        try { generateBookEpub(); } catch (e) { alert('EPUB生成に失敗しました: ' + e.message); }
+    document.getElementById('bookGenEpub').addEventListener('click', async () => {
+        try { await generateBookEpub(); } catch (e) { alert('EPUB生成に失敗しました: ' + e.message); }
     });
     document.getElementById('bookGenPdf').addEventListener('click', async () => {
         overlay.classList.remove('open');
