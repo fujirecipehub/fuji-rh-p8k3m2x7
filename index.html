@@ -2419,6 +2419,34 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 .book-gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .book-hint { font-size: 0.75rem; color: var(--text-muted); margin: 0.85rem 0 0; line-height: 1.5; }
 
+/* ===== Statistics Dashboard ===== */
+.stats-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 3000;
+    display: none; align-items: center; justify-content: center; padding: 1rem;
+}
+.stats-overlay.open { display: flex; }
+.stats-container {
+    background: var(--bg-modal); border-radius: 16px; max-width: 620px; width: 100%;
+    max-height: 90vh; overflow-y: auto; padding: 1.5rem; position: relative; box-shadow: var(--shadow-lg);
+}
+.stats-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; }
+.stats-close svg { width: 24px; height: 24px; }
+.stats-title { font-size: 1.25rem; font-weight: 800; margin: 0 0 0.25rem; color: var(--text-primary); }
+.stats-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1.25rem; }
+.stats-summary { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
+.stats-kpi { flex: 1 1 120px; background: var(--bg-input); border-radius: 12px; padding: 0.9rem 1rem; text-align: center; }
+.stats-kpi-val { font-size: 1.6rem; font-weight: 800; color: var(--accent-gold); line-height: 1.1; }
+.stats-kpi-label { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem; }
+.stats-section { margin-bottom: 1.5rem; }
+.stats-section h3 { font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin: 0 0 0.75rem; }
+.stats-bar-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.stats-bar-label { flex: 0 0 34%; font-size: 0.82rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats-bar-track { flex: 1 1 auto; background: var(--bg-input); border-radius: 6px; height: 20px; overflow: hidden; }
+.stats-bar-fill { height: 100%; background: var(--accent-gold); border-radius: 6px; min-width: 2px; }
+.stats-bar-val { flex: 0 0 auto; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); min-width: 2.2rem; text-align: right; font-variant-numeric: tabular-nums; }
+.stats-empty { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; font-size: 0.9rem; }
+.stats-star-fill { background: #f59e0b; }
+
 /* Auto photo comment button */
 .auto-comment-btn {
     display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;
@@ -2451,6 +2479,13 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
     body.book-printing .book-print-cover h1 { font-size: 28pt; margin: 0 0 1rem; color: #000 !important; }
     body.book-printing .book-print-cover p { font-size: 12pt; color: #555 !important; }
     body.book-printing .book-cover-img { display: block; margin: 1.5rem auto 0; max-width: 100%; max-height: 16cm; object-fit: contain; page-break-inside: avoid; }
+    body.book-printing .book-print-toc { page-break-after: always; padding: 0.5rem 0; }
+    body.book-printing .book-print-toc h2 { font-size: 20pt; margin: 0 0 1rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; color: #000 !important; }
+    body.book-printing .book-toc-group { font-size: 12pt; font-weight: 700; color: #333 !important; margin: 0.9rem 0 0.3rem; }
+    body.book-printing .book-toc-item { display: flex; gap: 0.5rem; font-size: 11pt; color: #111 !important; padding: 0.12rem 0 0.12rem 0.8rem; }
+    body.book-printing .book-toc-num { color: #888 !important; min-width: 1.8rem; }
+    body.book-printing .book-print-chapter { font-size: 10pt; font-weight: 700; color: #a06a00 !important; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+    body.book-printing .book-recipe-num { color: #888 !important; }
     body.book-printing .book-print-recipe { page-break-after: always; padding: 0.5rem 0; }
     body.book-printing .book-print-recipe h2 { font-size: 20pt; margin: 0 0 0.4rem; border-bottom: 2px solid #333; padding-bottom: 0.3rem; color: #000 !important; }
     body.book-printing .book-print-recipe .gen { font-size: 10pt; color: #666 !important; margin: 0 0 0.6rem; }
@@ -3684,6 +3719,13 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                     <span>本作成</span>
                 </button>
 
+                <button id="statsBtn" class="dash-btn" title="マイレシピの統計">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span>統計</span>
+                </button>
+
                 <div class="fontsize-controls">
                     <button class="fontsize-btn" data-size="small" onclick="setFontSize('small')">小</button>
                     <button class="fontsize-btn active" data-size="medium" onclick="setFontSize('medium')">中</button>
@@ -4041,6 +4083,18 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                 <canvas id="evoCanvas"></canvas>
             </div>
             <div class="evo-legend" id="evoLegend"></div>
+        </div>
+    </div>
+
+    <!-- Statistics Dashboard Modal -->
+    <div class="stats-overlay" id="statsOverlay">
+        <div class="stats-container">
+            <button class="stats-close" id="statsClose">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div class="stats-title">マイレシピ統計</div>
+            <div class="stats-desc">保存したマイレシピの傾向をまとめて表示します</div>
+            <div id="statsBody"></div>
         </div>
     </div>
 
@@ -13849,6 +13903,23 @@ function getSelectedBookRecipes() {
     return getCombinedRecipes().filter(r => bookSelected.has(r.id));
 }
 
+// Group recipes by film simulation (for the book's table of contents & chapters)
+function bookGroupBySim(recipes) {
+    const map = new Map();
+    recipes.forEach(r => {
+        const sim = (r.settings.film_simulation || 'その他').trim() || 'その他';
+        if (!map.has(sim)) map.set(sim, []);
+        map.get(sim).push(r);
+    });
+    return [...map.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0], 'ja'))
+        .map(([sim, items]) => ({ sim, items }));
+}
+// Recipes reordered so same-simulation entries are adjacent (matches the TOC order)
+function bookOrderedRecipes(recipes) {
+    return bookGroupBySim(recipes).flatMap(g => g.items);
+}
+
 // Build the inner HTML for one recipe (shared by EPUB chapter + PDF print)
 // Collect all the user-written text for a recipe (location, rating, tags, memo, myRecipe notes)
 function bookCollectNotes(recipe) {
@@ -13913,16 +13984,41 @@ function generateBookPdf() {
 
     const today = new Date().toLocaleDateString('ja-JP');
     const coverImg = getBookCoverPhoto(recipes);
+    const groups = bookGroupBySim(recipes);
     let html = `<div class="book-print-cover${coverImg ? ' has-img' : ''}"><h1>${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes<br>${escHtml(String(recipes.length))} レシピ ／ ${escHtml(today)}</p>${coverImg ? `<img class="book-cover-img" src="${coverImg}" alt="">` : ''}</div>`;
-    recipes.forEach(r => {
-        const { rows, photosHtml, genLabel, notes } = bookRecipeInnerHtml(r, (rec, i, p) => p);
-        html += `<div class="book-print-recipe">
-            <h2>${escHtml(r.title)}</h2>
-            <p class="gen">${escHtml(genLabel)}</p>
-            <div class="book-print-photos">${photosHtml}</div>
-            <table class="book-print-table"><tbody>${rows}</tbody></table>
-            ${notes}
-        </div>`;
+
+    // Table of contents (only when there is more than one recipe)
+    if (recipes.length > 1) {
+        let n = 0;
+        let toc = '<div class="book-print-toc"><h2>目次</h2>';
+        groups.forEach(g => {
+            toc += `<div class="book-toc-group">${escHtml(g.sim)}</div>`;
+            g.items.forEach(r => {
+                n++;
+                toc += `<div class="book-toc-item"><span class="book-toc-num">${n}.</span><span class="book-toc-title">${escHtml(r.title)}</span></div>`;
+            });
+        });
+        toc += '</div>';
+        html += toc;
+    }
+
+    // Recipe pages, grouped by film simulation with a chapter divider per group
+    let num = 0;
+    groups.forEach(g => {
+        const multi = groups.length > 1;
+        g.items.forEach((r, idx) => {
+            num++;
+            const chapterTag = multi && idx === 0 ? `<div class="book-print-chapter">${escHtml(g.sim)}</div>` : '';
+            const { rows, photosHtml, genLabel, notes } = bookRecipeInnerHtml(r, (rec, i, p) => p);
+            html += `<div class="book-print-recipe">
+                ${chapterTag}
+                <h2><span class="book-recipe-num">${num}.</span> ${escHtml(r.title)}</h2>
+                <p class="gen">${escHtml(genLabel)}</p>
+                <div class="book-print-photos">${photosHtml}</div>
+                <table class="book-print-table"><tbody>${rows}</tbody></table>
+                ${notes}
+            </div>`;
+        });
     });
     root.innerHTML = html;
     document.body.appendChild(root);
@@ -14025,6 +14121,7 @@ th,td{text-align:left;padding:.4em .5em;border-bottom:1px solid #ccc;font-size:.
 th{width:42%;color:#333;}
 img{max-width:100%;margin:.5em 0;}
 .notes{border-left:3px solid #999;padding-left:.75em;margin-top:1em;}
+.chap-sim{color:#a06a00;font-weight:700;font-size:.8em;letter-spacing:.05em;margin:0 0 .3em;}
 .book-note-shoot{color:#222;font-weight:700;margin-bottom:.35em;}
 .book-note-meta{color:#444;margin-bottom:.4em;}
 .book-note-body{white-space:pre-wrap;line-height:1.7;}`) });
@@ -14056,33 +14153,47 @@ img{max-width:100%;margin:.5em 0;}
     spineItems.push('<itemref idref="cover"/>');
 
     let imgId = 0;
-    recipes.forEach((r, ri) => {
-        const chapId = `ch${ri}`;
-        const photos = bookGetPhotos(r);
-        const imgRefs = [];
-        photos.forEach(p => {
-            try {
-                const { mime, bytes } = dataUriToBytes(p);
-                const ext = mime.indexOf('png') >= 0 ? 'png' : (mime.indexOf('webp') >= 0 ? 'webp' : 'jpg');
-                const name = `images/img${imgId}.${ext}`;
-                files.push({ name: 'OEBPS/' + name, bytes });
-                manifestItems.push(`<item id="img${imgId}" href="${name}" media-type="${mime}"/>`);
-                imgRefs.push(name);
-                imgId++;
-            } catch (e) { /* skip bad image */ }
-        });
-        const { rows, genLabel, notes } = bookRecipeInnerHtml(r, () => '');
-        const photosHtml = imgRefs.map(n => `<img src="${n}" alt=""/>`).join('');
-        const notesHtml = bookNotesBlockHtml(r, 'notes');
-        const chapXhtml =
+    let ri = 0;
+    const groups = bookGroupBySim(recipes);
+    const multiGroup = groups.length > 1;
+    groups.forEach(g => {
+        const groupItems = [];
+        g.items.forEach((r, gi) => {
+            const chapId = `ch${ri}`;
+            const photos = bookGetPhotos(r);
+            const imgRefs = [];
+            photos.forEach(p => {
+                try {
+                    const { mime, bytes } = dataUriToBytes(p);
+                    const ext = mime.indexOf('png') >= 0 ? 'png' : (mime.indexOf('webp') >= 0 ? 'webp' : 'jpg');
+                    const name = `images/img${imgId}.${ext}`;
+                    files.push({ name: 'OEBPS/' + name, bytes });
+                    manifestItems.push(`<item id="img${imgId}" href="${name}" media-type="${mime}"/>`);
+                    imgRefs.push(name);
+                    imgId++;
+                } catch (e) { /* skip bad image */ }
+            });
+            const { rows, genLabel, notes } = bookRecipeInnerHtml(r, () => '');
+            const photosHtml = imgRefs.map(n => `<img src="${n}" alt=""/>`).join('');
+            const notesHtml = bookNotesBlockHtml(r, 'notes');
+            const chapLabel = multiGroup && gi === 0 ? `<p class="chap-sim">${escHtml(g.sim)}</p>` : '';
+            const chapXhtml =
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><title>${escHtml(r.title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body><h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p>${photosHtml}<table><tbody>${rows}</tbody></table>${notesHtml}</body></html>`;
-        files.push({ name: `OEBPS/${chapId}.xhtml`, bytes: enc.encode(chapXhtml) });
-        manifestItems.push(`<item id="${chapId}" href="${chapId}.xhtml" media-type="application/xhtml+xml"/>`);
-        spineItems.push(`<itemref idref="${chapId}"/>`);
-        navLis.push(`<li><a href="${chapId}.xhtml">${escHtml(r.title)}</a></li>`);
+<body>${chapLabel}<h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p>${photosHtml}<table><tbody>${rows}</tbody></table>${notesHtml}</body></html>`;
+            files.push({ name: `OEBPS/${chapId}.xhtml`, bytes: enc.encode(chapXhtml) });
+            manifestItems.push(`<item id="${chapId}" href="${chapId}.xhtml" media-type="application/xhtml+xml"/>`);
+            spineItems.push(`<itemref idref="${chapId}"/>`);
+            groupItems.push(`<li><a href="${chapId}.xhtml">${escHtml(r.title)}</a></li>`);
+            ri++;
+        });
+        // Nested TOC: group by simulation when there is more than one group
+        if (multiGroup) {
+            navLis.push(`<li><span>${escHtml(g.sim)}</span><ol>${groupItems.join('')}</ol></li>`);
+        } else {
+            groupItems.forEach(li => navLis.push(li));
+        }
     });
 
     // nav.xhtml (EPUB3 TOC)
@@ -14090,7 +14201,7 @@ img{max-width:100%;margin:.5em 0;}
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><meta charset="utf-8"/><title>目次</title></head>
-<body><nav epub:type="toc" id="toc"><h1>目次</h1><ol>${navLis.map(li => li.replace('<li>', '<li>')).join('')}</ol></nav></body></html>`;
+<body><nav epub:type="toc" id="toc"><h1>目次</h1><ol>${navLis.join('')}</ol></nav></body></html>`;
     files.push({ name: 'OEBPS/nav.xhtml', bytes: enc.encode(navXhtml) });
     manifestItems.push('<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>');
 
@@ -14150,6 +14261,93 @@ function setupBook() {
         overlay.classList.remove('open');
         try { generateBookPdf(); } catch (e) { alert('PDF生成に失敗しました: ' + e.message); }
     });
+}
+
+// ===== Statistics Dashboard =====
+const STATS_NUM_KEYS = { highlight_tone: 'ハイライト', shadow_tone: 'シャドウ', color: 'カラー', sharpness: 'シャープネス', noise_reduction: 'ノイズリダクション', clarity: 'クラリティ' };
+function statsParseNum(v) {
+    if (v == null) return null;
+    const m = String(v).match(/[-+]?\d+(\.\d+)?/);
+    return m ? parseFloat(m[0]) : null;
+}
+function statsBar(label, count, max, extraClass) {
+    const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+    return `<div class="stats-bar-row">
+        <span class="stats-bar-label">${escHtml(label)}</span>
+        <span class="stats-bar-track"><span class="stats-bar-fill ${extraClass || ''}" style="width:${pct}%"></span></span>
+        <span class="stats-bar-val">${escHtml(String(count))}</span>
+    </div>`;
+}
+function renderStats() {
+    const body = document.getElementById('statsBody');
+    if (!myRecipes || myRecipes.length === 0) {
+        body.innerHTML = '<div class="stats-empty">マイレシピがまだありません。<br>レシピを保存すると統計が表示されます。</div>';
+        return;
+    }
+    const memos = getMemos();
+    const total = myRecipes.length;
+    let totalPhotos = 0;
+    const simCount = {};
+    const camCount = {};
+    const ratingDist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let ratingSum = 0, ratingN = 0;
+    const numAgg = {};
+    Object.keys(STATS_NUM_KEYS).forEach(k => numAgg[k] = { sum: 0, n: 0 });
+
+    myRecipes.forEach(r => {
+        totalPhotos += (r.images || []).length;
+        const sim = (r.settings.film_simulation || 'その他').trim() || 'その他';
+        simCount[sim] = (simCount[sim] || 0) + 1;
+        const cam = (r.meta && r.meta.camera || '').trim();
+        if (cam) camCount[cam] = (camCount[cam] || 0) + 1;
+        const m = memos[r.id];
+        if (m && m.rating) { ratingDist[m.rating] = (ratingDist[m.rating] || 0) + 1; ratingSum += m.rating; ratingN++; }
+        Object.keys(STATS_NUM_KEYS).forEach(k => {
+            const v = statsParseNum(r.settings[k]);
+            if (v !== null) { numAgg[k].sum += v; numAgg[k].n++; }
+        });
+    });
+
+    const avgRating = ratingN ? (ratingSum / ratingN).toFixed(1) : '—';
+    let html = `<div class="stats-summary">
+        <div class="stats-kpi"><div class="stats-kpi-val">${total}</div><div class="stats-kpi-label">マイレシピ</div></div>
+        <div class="stats-kpi"><div class="stats-kpi-val">${totalPhotos}</div><div class="stats-kpi-label">写真枚数</div></div>
+        <div class="stats-kpi"><div class="stats-kpi-val">${avgRating}</div><div class="stats-kpi-label">平均評価</div></div>
+    </div>`;
+
+    // Film simulation usage
+    const simEntries = Object.entries(simCount).sort((a, b) => b[1] - a[1]);
+    const simMax = simEntries.length ? simEntries[0][1] : 0;
+    html += `<div class="stats-section"><h3>フィルムシミュレーション使用回数</h3>${simEntries.map(([k, v]) => statsBar(k, v, simMax)).join('')}</div>`;
+
+    // Rating distribution
+    if (ratingN > 0) {
+        const rMax = Math.max(...Object.values(ratingDist));
+        html += `<div class="stats-section"><h3>評価分布</h3>${[5, 4, 3, 2, 1].map(s => statsBar('★' + s, ratingDist[s] || 0, rMax, 'stats-star-fill')).join('')}</div>`;
+    }
+
+    // Camera usage
+    const camEntries = Object.entries(camCount).sort((a, b) => b[1] - a[1]);
+    if (camEntries.length) {
+        const camMax = camEntries[0][1];
+        html += `<div class="stats-section"><h3>カメラ別</h3>${camEntries.map(([k, v]) => statsBar(k, v, camMax)).join('')}</div>`;
+    }
+
+    // Average numeric settings
+    const numRows = Object.keys(STATS_NUM_KEYS).filter(k => numAgg[k].n > 0).map(k => {
+        const avg = numAgg[k].sum / numAgg[k].n;
+        const disp = (avg > 0 ? '+' : '') + avg.toFixed(1);
+        return `<div class="stats-bar-row"><span class="stats-bar-label">${escHtml(STATS_NUM_KEYS[k])}</span><span class="stats-bar-track"><span class="stats-bar-fill" style="width:${Math.min(100, Math.abs(avg) / 4 * 100)}%"></span></span><span class="stats-bar-val">${escHtml(disp)}</span></div>`;
+    }).join('');
+    if (numRows) html += `<div class="stats-section"><h3>設定値の平均</h3>${numRows}</div>`;
+
+    body.innerHTML = html;
+}
+function setupStats() {
+    const overlay = document.getElementById('statsOverlay');
+    document.getElementById('statsBtn').addEventListener('click', () => { renderStats(); overlay.classList.add('open'); });
+    document.getElementById('statsClose').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
 }
 
 // ===== Evolution Graph =====
@@ -16106,6 +16304,7 @@ function setupEventListeners() {
     setupTimer();
     setupEvo();
     setupBook();
+    setupStats();
     document.getElementById('autoCommentBtn').addEventListener('click', runAutoComment);
     populateLocationFilter();
 
@@ -16117,7 +16316,8 @@ function setupEventListeners() {
     const timerOverlay = document.getElementById('timerOverlay');
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (document.getElementById('bookOverlay').classList.contains('open')) { document.getElementById('bookOverlay').classList.remove('open'); }
+            if (document.getElementById('statsOverlay').classList.contains('open')) { document.getElementById('statsOverlay').classList.remove('open'); }
+            else if (document.getElementById('bookOverlay').classList.contains('open')) { document.getElementById('bookOverlay').classList.remove('open'); }
             else if (document.getElementById('evoOverlay').classList.contains('open')) { document.getElementById('evoOverlay').classList.remove('open'); }
             else if (timerOverlay.classList.contains('open')) { timerOverlay.classList.remove('open'); if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
             else if (huemapOverlay.classList.contains('open')) { huemapOverlay.classList.remove('open'); }
