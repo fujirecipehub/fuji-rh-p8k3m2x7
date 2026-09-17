@@ -2502,10 +2502,13 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
         display: block; width: auto; max-width: 100%; max-height: 23cm;
         object-fit: contain; margin: 0 auto 0.5rem; page-break-inside: avoid;
     }
-    /* Portrait recipes: photo beside the settings so a tall photo fits one page */
-    body.book-printing .book-recipe-split { display: flex; gap: 0.9rem; align-items: flex-start; }
-    body.book-printing .book-recipe-split .split-photos { flex: 1 1 58%; min-width: 0; }
-    body.book-printing .book-recipe-split .split-info { flex: 1 1 42%; min-width: 0; }
+    /* Portrait recipes: photo beside the settings so a tall photo fits one page.
+       Fill the page and balance whitespace by centering the block vertically. */
+    body.book-printing .book-print-recipe.portrait { display: flex; flex-direction: column; min-height: 24cm; }
+    body.book-printing .book-recipe-split { display: flex; gap: 0.9rem; align-items: center; }
+    body.book-printing .book-print-recipe.portrait .book-recipe-split { flex: 1 1 auto; }
+    body.book-printing .book-recipe-split .split-photos { flex: 1 1 60%; min-width: 0; }
+    body.book-printing .book-recipe-split .split-info { flex: 1 1 40%; min-width: 0; }
     body.book-printing .book-print-recipe.portrait .book-print-photos img { max-height: 23cm; margin: 0 0 0.5rem; }
     body.book-printing .book-recipe-split .split-info .book-print-table { margin-bottom: 0.75rem; }
     body.book-printing .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; page-break-inside: avoid; }
