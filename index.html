@@ -2390,6 +2390,8 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 .book-row:hover { background: var(--bg-hover); }
 .book-row.selected { background: rgba(212,160,23,0.14); }
 .book-row input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--accent-gold); cursor: pointer; }
+.book-row-thumb { width: 46px; height: 46px; flex-shrink: 0; object-fit: cover; border-radius: 6px; background: var(--bg-input); }
+.book-row-thumb.empty { display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--text-muted); border: 1px dashed var(--border-color); }
 .book-row-body { flex: 1 1 auto; min-width: 0; }
 .book-row-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .book-row-sub { font-size: 0.75rem; color: var(--text-secondary); }
@@ -2399,6 +2401,11 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 }
 .book-badge.photo { background: #2a9d8f; color: #fff; }
 .book-selcount { font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.85rem; }
+.book-cover-row { margin-bottom: 0.85rem; }
+.book-cover-pick { display: flex; align-items: center; gap: 0.65rem; }
+.book-cover-pick .book-input { margin-bottom: 0; flex: 1 1 auto; }
+.book-cover-preview { width: 54px; height: 54px; flex-shrink: 0; object-fit: cover; border-radius: 8px; background: var(--bg-input); border: 1px solid var(--border-color); }
+.book-cover-preview[src=""] { display: none; }
 .book-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
 .book-gen-btn {
     flex: 1 1 140px; padding: 0.9rem 1rem; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px;
@@ -4054,6 +4061,13 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
             </div>
             <div class="book-list" id="bookList"></div>
             <div class="book-selcount" id="bookSelCount">0 件を選択中</div>
+            <div class="book-cover-row" id="bookCoverRow" hidden>
+                <label class="book-field-label" for="bookCoverSelect">表紙の写真</label>
+                <div class="book-cover-pick">
+                    <img id="bookCoverPreview" class="book-cover-preview" alt="">
+                    <select class="book-input" id="bookCoverSelect"></select>
+                </div>
+            </div>
             <div class="book-actions">
                 <button class="book-gen-btn epub" id="bookGenEpub" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -13730,13 +13744,54 @@ function bookGetPhotos(recipe) {
     return recipePhotos[recipe.id] || [];
 }
 
-// First available photo among the selected recipes, used for the cover
+// First available photo among the selected recipes (default/auto cover)
 function bookCoverPhoto(recipes) {
     for (const r of recipes) {
         const p = bookGetPhotos(r);
         if (p.length) return p[0];
     }
     return null;
+}
+
+// Cover photo picker: options built from the selected recipes' photos
+let bookCoverOptions = [];
+function populateBookCoverSelect() {
+    const recipes = getSelectedBookRecipes();
+    bookCoverOptions = [];
+    recipes.forEach(r => {
+        const photos = bookGetPhotos(r);
+        photos.forEach((uri, i) => {
+            bookCoverOptions.push({ uri, label: r.title + (photos.length > 1 ? ` (${i + 1})` : '') });
+        });
+    });
+    const row = document.getElementById('bookCoverRow');
+    const sel = document.getElementById('bookCoverSelect');
+    if (bookCoverOptions.length === 0) {
+        row.hidden = true;
+        sel.innerHTML = '';
+        document.getElementById('bookCoverPreview').src = '';
+        return;
+    }
+    row.hidden = false;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">自動（最初の写真）</option>' +
+        bookCoverOptions.map((o, i) => `<option value="${i}">${escHtml(o.label)}</option>`).join('');
+    // keep previous choice if still valid
+    if (prev !== '' && bookCoverOptions[parseInt(prev)]) sel.value = prev; else sel.value = '';
+    updateBookCoverPreview();
+}
+function updateBookCoverPreview() {
+    const sel = document.getElementById('bookCoverSelect');
+    const img = document.getElementById('bookCoverPreview');
+    const uri = getBookCoverPhoto(getSelectedBookRecipes());
+    img.src = uri || '';
+}
+function getBookCoverPhoto(recipes) {
+    const sel = document.getElementById('bookCoverSelect');
+    if (sel && sel.value !== '' && bookCoverOptions[parseInt(sel.value)]) {
+        return bookCoverOptions[parseInt(sel.value)].uri;
+    }
+    return bookCoverPhoto(recipes);
 }
 
 function escHtml(s) {
@@ -13758,11 +13813,16 @@ function renderBookList() {
     }
     list.innerHTML = rows.map(r => {
         const sel = bookSelected.has(r.id);
-        const photoCount = bookGetPhotos(r).length;
+        const photos = bookGetPhotos(r);
+        const photoCount = photos.length;
         const myBadge = r.isMyRecipe ? '<span class="book-badge">マイ</span>' : '';
         const photoBadge = photoCount > 0 ? `<span class="book-badge photo">写真${photoCount}</span>` : '';
+        const thumb = photoCount > 0
+            ? `<img class="book-row-thumb" src="${photos[0]}" alt="" loading="lazy">`
+            : `<span class="book-row-thumb empty">無</span>`;
         return `<label class="book-row ${sel ? 'selected' : ''}" data-id="${escHtml(r.id)}">
             <input type="checkbox" ${sel ? 'checked' : ''}>
+            ${thumb}
             <span class="book-row-body">
                 <span class="book-row-title">${escHtml(r.title)}${myBadge}${photoBadge}</span>
                 <span class="book-row-sub">${escHtml(r.settings.film_simulation || '—')}</span>
@@ -13776,6 +13836,7 @@ function updateBookCount() {
     const disabled = bookSelected.size === 0;
     document.getElementById('bookGenEpub').disabled = disabled;
     document.getElementById('bookGenPdf').disabled = disabled;
+    populateBookCoverSelect();
 }
 
 function openBook() {
@@ -13851,7 +13912,7 @@ function generateBookPdf() {
     root.className = 'book-print-root';
 
     const today = new Date().toLocaleDateString('ja-JP');
-    const coverImg = bookCoverPhoto(recipes);
+    const coverImg = getBookCoverPhoto(recipes);
     let html = `<div class="book-print-cover${coverImg ? ' has-img' : ''}"><h1>${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes<br>${escHtml(String(recipes.length))} レシピ ／ ${escHtml(today)}</p>${coverImg ? `<img class="book-cover-img" src="${coverImg}" alt="">` : ''}</div>`;
     recipes.forEach(r => {
         const { rows, photosHtml, genLabel, notes } = bookRecipeInnerHtml(r, (rec, i, p) => p);
@@ -13974,7 +14035,7 @@ img{max-width:100%;margin:.5em 0;}
 
     // Cover (with an image if any selected recipe has a photo)
     let coverImgTag = '';
-    const coverPhoto = bookCoverPhoto(recipes);
+    const coverPhoto = getBookCoverPhoto(recipes);
     if (coverPhoto) {
         try {
             const { mime, bytes } = dataUriToBytes(coverPhoto);
@@ -14063,6 +14124,7 @@ function setupBook() {
     document.getElementById('bookClose').addEventListener('click', () => overlay.classList.remove('open'));
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
     document.getElementById('bookSearch').addEventListener('input', renderBookList);
+    document.getElementById('bookCoverSelect').addEventListener('change', updateBookCoverPreview);
     document.getElementById('bookList').addEventListener('change', (e) => {
         const row = e.target.closest('.book-row');
         if (!row) return;
