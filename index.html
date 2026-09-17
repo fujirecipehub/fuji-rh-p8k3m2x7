@@ -2419,34 +2419,6 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
 .book-gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .book-hint { font-size: 0.75rem; color: var(--text-muted); margin: 0.85rem 0 0; line-height: 1.5; }
 
-/* ===== Statistics Dashboard ===== */
-.stats-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 3000;
-    display: none; align-items: center; justify-content: center; padding: 1rem;
-}
-.stats-overlay.open { display: flex; }
-.stats-container {
-    background: var(--bg-modal); border-radius: 16px; max-width: 620px; width: 100%;
-    max-height: 90vh; overflow-y: auto; padding: 1.5rem; position: relative; box-shadow: var(--shadow-lg);
-}
-.stats-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; }
-.stats-close svg { width: 24px; height: 24px; }
-.stats-title { font-size: 1.25rem; font-weight: 800; margin: 0 0 0.25rem; color: var(--text-primary); }
-.stats-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1.25rem; }
-.stats-summary { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
-.stats-kpi { flex: 1 1 120px; background: var(--bg-input); border-radius: 12px; padding: 0.9rem 1rem; text-align: center; }
-.stats-kpi-val { font-size: 1.6rem; font-weight: 800; color: var(--accent-gold); line-height: 1.1; }
-.stats-kpi-label { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem; }
-.stats-section { margin-bottom: 1.5rem; }
-.stats-section h3 { font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin: 0 0 0.75rem; }
-.stats-bar-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
-.stats-bar-label { flex: 0 0 34%; font-size: 0.82rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stats-bar-track { flex: 1 1 auto; background: var(--bg-input); border-radius: 6px; height: 20px; overflow: hidden; }
-.stats-bar-fill { height: 100%; background: var(--accent-gold); border-radius: 6px; min-width: 2px; }
-.stats-bar-val { flex: 0 0 auto; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); min-width: 2.2rem; text-align: right; font-variant-numeric: tabular-nums; }
-.stats-empty { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; font-size: 0.9rem; }
-.stats-star-fill { background: #f59e0b; }
-
 /* Auto photo comment button */
 .auto-comment-btn {
     display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;
@@ -3719,13 +3691,6 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                     <span>本作成</span>
                 </button>
 
-                <button id="statsBtn" class="dash-btn" title="マイレシピの統計">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <span>統計</span>
-                </button>
-
                 <div class="fontsize-controls">
                     <button class="fontsize-btn" data-size="small" onclick="setFontSize('small')">小</button>
                     <button class="fontsize-btn active" data-size="medium" onclick="setFontSize('medium')">中</button>
@@ -4083,18 +4048,6 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
                 <canvas id="evoCanvas"></canvas>
             </div>
             <div class="evo-legend" id="evoLegend"></div>
-        </div>
-    </div>
-
-    <!-- Statistics Dashboard Modal -->
-    <div class="stats-overlay" id="statsOverlay">
-        <div class="stats-container">
-            <button class="stats-close" id="statsClose">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <div class="stats-title">マイレシピ統計</div>
-            <div class="stats-desc">保存したマイレシピの傾向をまとめて表示します</div>
-            <div id="statsBody"></div>
         </div>
     </div>
 
@@ -14263,93 +14216,6 @@ function setupBook() {
     });
 }
 
-// ===== Statistics Dashboard =====
-const STATS_NUM_KEYS = { highlight_tone: 'ハイライト', shadow_tone: 'シャドウ', color: 'カラー', sharpness: 'シャープネス', noise_reduction: 'ノイズリダクション', clarity: 'クラリティ' };
-function statsParseNum(v) {
-    if (v == null) return null;
-    const m = String(v).match(/[-+]?\d+(\.\d+)?/);
-    return m ? parseFloat(m[0]) : null;
-}
-function statsBar(label, count, max, extraClass) {
-    const pct = max > 0 ? Math.round((count / max) * 100) : 0;
-    return `<div class="stats-bar-row">
-        <span class="stats-bar-label">${escHtml(label)}</span>
-        <span class="stats-bar-track"><span class="stats-bar-fill ${extraClass || ''}" style="width:${pct}%"></span></span>
-        <span class="stats-bar-val">${escHtml(String(count))}</span>
-    </div>`;
-}
-function renderStats() {
-    const body = document.getElementById('statsBody');
-    if (!myRecipes || myRecipes.length === 0) {
-        body.innerHTML = '<div class="stats-empty">マイレシピがまだありません。<br>レシピを保存すると統計が表示されます。</div>';
-        return;
-    }
-    const memos = getMemos();
-    const total = myRecipes.length;
-    let totalPhotos = 0;
-    const simCount = {};
-    const camCount = {};
-    const ratingDist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    let ratingSum = 0, ratingN = 0;
-    const numAgg = {};
-    Object.keys(STATS_NUM_KEYS).forEach(k => numAgg[k] = { sum: 0, n: 0 });
-
-    myRecipes.forEach(r => {
-        totalPhotos += (r.images || []).length;
-        const sim = (r.settings.film_simulation || 'その他').trim() || 'その他';
-        simCount[sim] = (simCount[sim] || 0) + 1;
-        const cam = (r.meta && r.meta.camera || '').trim();
-        if (cam) camCount[cam] = (camCount[cam] || 0) + 1;
-        const m = memos[r.id];
-        if (m && m.rating) { ratingDist[m.rating] = (ratingDist[m.rating] || 0) + 1; ratingSum += m.rating; ratingN++; }
-        Object.keys(STATS_NUM_KEYS).forEach(k => {
-            const v = statsParseNum(r.settings[k]);
-            if (v !== null) { numAgg[k].sum += v; numAgg[k].n++; }
-        });
-    });
-
-    const avgRating = ratingN ? (ratingSum / ratingN).toFixed(1) : '—';
-    let html = `<div class="stats-summary">
-        <div class="stats-kpi"><div class="stats-kpi-val">${total}</div><div class="stats-kpi-label">マイレシピ</div></div>
-        <div class="stats-kpi"><div class="stats-kpi-val">${totalPhotos}</div><div class="stats-kpi-label">写真枚数</div></div>
-        <div class="stats-kpi"><div class="stats-kpi-val">${avgRating}</div><div class="stats-kpi-label">平均評価</div></div>
-    </div>`;
-
-    // Film simulation usage
-    const simEntries = Object.entries(simCount).sort((a, b) => b[1] - a[1]);
-    const simMax = simEntries.length ? simEntries[0][1] : 0;
-    html += `<div class="stats-section"><h3>フィルムシミュレーション使用回数</h3>${simEntries.map(([k, v]) => statsBar(k, v, simMax)).join('')}</div>`;
-
-    // Rating distribution
-    if (ratingN > 0) {
-        const rMax = Math.max(...Object.values(ratingDist));
-        html += `<div class="stats-section"><h3>評価分布</h3>${[5, 4, 3, 2, 1].map(s => statsBar('★' + s, ratingDist[s] || 0, rMax, 'stats-star-fill')).join('')}</div>`;
-    }
-
-    // Camera usage
-    const camEntries = Object.entries(camCount).sort((a, b) => b[1] - a[1]);
-    if (camEntries.length) {
-        const camMax = camEntries[0][1];
-        html += `<div class="stats-section"><h3>カメラ別</h3>${camEntries.map(([k, v]) => statsBar(k, v, camMax)).join('')}</div>`;
-    }
-
-    // Average numeric settings
-    const numRows = Object.keys(STATS_NUM_KEYS).filter(k => numAgg[k].n > 0).map(k => {
-        const avg = numAgg[k].sum / numAgg[k].n;
-        const disp = (avg > 0 ? '+' : '') + avg.toFixed(1);
-        return `<div class="stats-bar-row"><span class="stats-bar-label">${escHtml(STATS_NUM_KEYS[k])}</span><span class="stats-bar-track"><span class="stats-bar-fill" style="width:${Math.min(100, Math.abs(avg) / 4 * 100)}%"></span></span><span class="stats-bar-val">${escHtml(disp)}</span></div>`;
-    }).join('');
-    if (numRows) html += `<div class="stats-section"><h3>設定値の平均</h3>${numRows}</div>`;
-
-    body.innerHTML = html;
-}
-function setupStats() {
-    const overlay = document.getElementById('statsOverlay');
-    document.getElementById('statsBtn').addEventListener('click', () => { renderStats(); overlay.classList.add('open'); });
-    document.getElementById('statsClose').addEventListener('click', () => overlay.classList.remove('open'));
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
-}
-
 // ===== Evolution Graph =====
 const EVO_KEYS = ['highlight_tone', 'shadow_tone', 'color', 'sharpness', 'noise_reduction', 'clarity', 'exposure_compensation'];
 const EVO_LABELS = { highlight_tone: 'ハイライト', shadow_tone: 'シャドー', color: 'カラー', sharpness: 'シャープネス', noise_reduction: 'NR', clarity: 'クラリティ', exposure_compensation: '露出補正' };
@@ -14922,6 +14788,20 @@ function openDashboard() {
     const tagCounts = {};
     Object.values(sceneTags).forEach(arr => arr.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
 
+    // Photos, cameras (EXIF), and average numeric settings
+    const DASH_NUM_KEYS = { highlight_tone: 'ハイライト', shadow_tone: 'シャドウ', color: 'カラー', sharpness: 'シャープネス', noise_reduction: 'ノイズリダクション', clarity: 'クラリティ' };
+    const dashParseNum = (v) => { if (v == null) return null; const m = String(v).match(/[-+]?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null; };
+    let totalPhotos = 0;
+    const camCounts = {};
+    const numAgg = {};
+    Object.keys(DASH_NUM_KEYS).forEach(k => numAgg[k] = { sum: 0, n: 0 });
+    myList.forEach(r => {
+        totalPhotos += (r.images || []).length;
+        const cam = (r.meta && r.meta.camera || '').trim();
+        if (cam) camCounts[cam] = (camCounts[cam] || 0) + 1;
+        Object.keys(DASH_NUM_KEYS).forEach(k => { const v = dashParseNum(r.settings[k]); if (v !== null) { numAgg[k].sum += v; numAgg[k].n++; } });
+    });
+
     const maxSim = Math.max(...Object.values(simCounts), 1);
     const simSorted = Object.entries(simCounts).sort((a, b) => b[1] - a[1]).slice(0, 12);
 
@@ -14930,6 +14810,7 @@ function openDashboard() {
             <div class="dash-section-title">マイレシピ統計</div>
             <div class="dash-summary">
                 <div class="dash-stat-card"><div class="dash-stat-value">${myList.length}</div><div class="dash-stat-label">マイレシピ数</div></div>
+                <div class="dash-stat-card"><div class="dash-stat-value">${totalPhotos}</div><div class="dash-stat-label">写真枚数</div></div>
                 <div class="dash-stat-card"><div class="dash-stat-value">${favCount}</div><div class="dash-stat-label">お気に入り</div></div>
                 <div class="dash-stat-card"><div class="dash-stat-value">${ratedCount}</div><div class="dash-stat-label">評価済み</div></div>
                 <div class="dash-stat-card"><div class="dash-stat-value">${avgRating}</div><div class="dash-stat-label">平均★</div></div>
@@ -14978,6 +14859,41 @@ function openDashboard() {
                         <span class="dash-bar-count">${ratingDist[star]}</span>
                     </div>
                 `).join('')}
+            </div>
+        </div>`;
+    }
+
+    const camEntries = Object.entries(camCounts).sort((a, b) => b[1] - a[1]);
+    if (camEntries.length > 0) {
+        const maxCam = camEntries[0][1];
+        html += `<div class="dash-section">
+            <div class="dash-section-title">カメラ別</div>
+            <div class="dash-bar-chart">
+                ${camEntries.map(([name, count]) => `
+                    <div class="dash-bar-row">
+                        <span class="dash-bar-label">${name}</span>
+                        <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${(count / maxCam * 100).toFixed(1)}%;background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div>
+                        <span class="dash-bar-count">${count}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>`;
+    }
+
+    const numKeysWithData = Object.keys(DASH_NUM_KEYS).filter(k => numAgg[k].n > 0);
+    if (numKeysWithData.length > 0) {
+        html += `<div class="dash-section">
+            <div class="dash-section-title">設定値の平均</div>
+            <div class="dash-bar-chart">
+                ${numKeysWithData.map(k => {
+                    const avg = numAgg[k].sum / numAgg[k].n;
+                    const disp = (avg > 0 ? '+' : '') + avg.toFixed(1);
+                    return `<div class="dash-bar-row">
+                        <span class="dash-bar-label">${DASH_NUM_KEYS[k]}</span>
+                        <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${Math.min(100, Math.abs(avg) / 4 * 100).toFixed(1)}%"></div></div>
+                        <span class="dash-bar-count">${disp}</span>
+                    </div>`;
+                }).join('')}
             </div>
         </div>`;
     }
@@ -16304,7 +16220,6 @@ function setupEventListeners() {
     setupTimer();
     setupEvo();
     setupBook();
-    setupStats();
     document.getElementById('autoCommentBtn').addEventListener('click', runAutoComment);
     populateLocationFilter();
 
@@ -16316,8 +16231,7 @@ function setupEventListeners() {
     const timerOverlay = document.getElementById('timerOverlay');
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (document.getElementById('statsOverlay').classList.contains('open')) { document.getElementById('statsOverlay').classList.remove('open'); }
-            else if (document.getElementById('bookOverlay').classList.contains('open')) { document.getElementById('bookOverlay').classList.remove('open'); }
+            if (document.getElementById('bookOverlay').classList.contains('open')) { document.getElementById('bookOverlay').classList.remove('open'); }
             else if (document.getElementById('evoOverlay').classList.contains('open')) { document.getElementById('evoOverlay').classList.remove('open'); }
             else if (timerOverlay.classList.contains('open')) { timerOverlay.classList.remove('open'); if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
             else if (huemapOverlay.classList.contains('open')) { huemapOverlay.classList.remove('open'); }
