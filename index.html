@@ -2502,6 +2502,12 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
         display: block; width: auto; max-width: 100%; max-height: 23cm;
         object-fit: contain; margin: 0 auto 0.5rem; page-break-inside: avoid;
     }
+    /* Portrait recipes: photo beside the settings so a tall photo fits one page */
+    body.book-printing .book-recipe-split { display: flex; gap: 0.9rem; align-items: flex-start; }
+    body.book-printing .book-recipe-split .split-photos { flex: 1 1 58%; min-width: 0; }
+    body.book-printing .book-recipe-split .split-info { flex: 1 1 42%; min-width: 0; }
+    body.book-printing .book-print-recipe.portrait .book-print-photos img { max-height: 23cm; margin: 0 0 0.5rem; }
+    body.book-printing .book-recipe-split .split-info .book-print-table { margin-bottom: 0.75rem; }
     body.book-printing .book-print-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; page-break-inside: avoid; }
     body.book-printing .book-print-table th, body.book-printing .book-print-table td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #ccc; font-size: 11pt; color: #111 !important; }
     body.book-printing .book-print-table th { width: 42%; color: #333 !important; font-weight: 700; }
@@ -13833,6 +13839,16 @@ function bookGetPhotos(recipe) {
     return recipePhotos[recipe.id] || [];
 }
 
+// Natural pixel size of an image data URI (for orientation-aware layout)
+function imgSize(src) {
+    return new Promise(resolve => {
+        const i = new Image();
+        i.onload = () => resolve({ w: i.naturalWidth, h: i.naturalHeight });
+        i.onerror = () => resolve(null);
+        i.src = src;
+    });
+}
+
 // First available photo among the selected recipes (default/auto cover)
 function bookCoverPhoto(recipes) {
     for (const r of recipes) {
@@ -14007,7 +14023,7 @@ function bookRecipeInnerHtml(recipe, imgSrcFn) {
 }
 
 // ---- PDF via browser print ----
-function generateBookPdf() {
+async function generateBookPdf() {
     const recipes = getSelectedBookRecipes();
     if (recipes.length === 0) return;
     const bookTitle = document.getElementById('bookTitleInput').value.trim() || 'マイ フィルムレシピブック';
@@ -14037,6 +14053,14 @@ function generateBookPdf() {
         html += toc;
     }
 
+    // Detect first-photo orientation per recipe (portrait → side-by-side layout to fit one page)
+    const orient = {};
+    await Promise.all(recipes.map(async r => {
+        const ph = bookGetPhotos(r);
+        if (ph.length) { const sz = await imgSize(ph[0]); orient[r.id] = sz ? (sz.h > sz.w * 1.05) : false; }
+        else orient[r.id] = false;
+    }));
+
     // Recipe pages, grouped by film simulation with a chapter divider per group
     let num = 0;
     groups.forEach(g => {
@@ -14045,14 +14069,28 @@ function generateBookPdf() {
             num++;
             const chapterTag = multi && idx === 0 ? `<div class="book-print-chapter">${escHtml(g.sim)}</div>` : '';
             const { rows, photosHtml, genLabel, notes } = bookRecipeInnerHtml(r, (rec, i, p) => p);
-            html += `<div class="book-print-recipe">
-                ${chapterTag}
-                <h2><span class="book-recipe-num">${num}.</span> ${escHtml(r.title)}</h2>
-                <p class="gen">${escHtml(genLabel)}</p>
-                <div class="book-print-photos">${photosHtml}</div>
-                <table class="book-print-table"><tbody>${rows}</tbody></table>
-                ${notes}
-            </div>`;
+            const header = `${chapterTag}<h2><span class="book-recipe-num">${num}.</span> ${escHtml(r.title)}</h2><p class="gen">${escHtml(genLabel)}</p>`;
+            if (orient[r.id] && photosHtml) {
+                // Portrait: photo on the left, settings/notes on the right — fits one page
+                html += `<div class="book-print-recipe portrait">
+                    ${header}
+                    <div class="book-recipe-split">
+                        <div class="split-photos book-print-photos">${photosHtml}</div>
+                        <div class="split-info">
+                            <table class="book-print-table"><tbody>${rows}</tbody></table>
+                            ${notes}
+                        </div>
+                    </div>
+                </div>`;
+            } else {
+                // Landscape / no photo: stacked
+                html += `<div class="book-print-recipe">
+                    ${header}
+                    <div class="book-print-photos">${photosHtml}</div>
+                    <table class="book-print-table"><tbody>${rows}</tbody></table>
+                    ${notes}
+                </div>`;
+            }
         });
     });
     root.innerHTML = html;
@@ -14292,9 +14330,9 @@ function setupBook() {
     document.getElementById('bookGenEpub').addEventListener('click', () => {
         try { generateBookEpub(); } catch (e) { alert('EPUB生成に失敗しました: ' + e.message); }
     });
-    document.getElementById('bookGenPdf').addEventListener('click', () => {
+    document.getElementById('bookGenPdf').addEventListener('click', async () => {
         overlay.classList.remove('open');
-        try { generateBookPdf(); } catch (e) { alert('PDF生成に失敗しました: ' + e.message); }
+        try { await generateBookPdf(); } catch (e) { alert('PDF生成に失敗しました: ' + e.message); }
     });
 }
 

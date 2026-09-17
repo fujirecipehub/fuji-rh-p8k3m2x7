@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fuji-recipe-hub-original-v13';
+const CACHE_NAME = 'fuji-recipe-hub-original-v14';
 const ASSETS = [
   './index.html',
   './manifest.json',
