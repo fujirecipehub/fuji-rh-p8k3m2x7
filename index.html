@@ -14189,26 +14189,29 @@ async function generateBookEpub() {
 </container>`) });
     files.push({ name: 'OEBPS/style.css', bytes: enc.encode(
 `html,body{margin:0;padding:0;}
-.page{width:1240px;height:1754px;box-sizing:border-box;padding:70px;display:flex;flex-direction:column;font-family:sans-serif;color:#000;background:#fff;overflow:hidden;}
+.page{width:1240px;height:1754px;box-sizing:border-box;padding:55px;display:flex;flex-direction:column;font-family:sans-serif;color:#000;background:#fff;overflow:hidden;}
 .phead{flex:0 0 auto;}
-.pbody{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;min-height:0;overflow:hidden;}
+.pbody{flex:1 1 auto;min-height:0;overflow:hidden;}
 h1{font-size:42px;line-height:1.2;margin:0 0 12px;border-bottom:3px solid #333;padding-bottom:10px;}
 .gen{color:#666;font-size:24px;margin:0 0 6px;}
 .chap-sim{color:#a06a00;font-weight:700;font-size:22px;letter-spacing:1px;margin:0 0 8px;}
 table{width:100%;border-collapse:collapse;}
-th,td{text-align:left;padding:9px 12px;border-bottom:1px solid #ccc;font-size:26px;}
+th,td{text-align:left;padding:6px 12px;border-bottom:1px solid #ccc;font-size:23px;}
 th{width:42%;color:#333;font-weight:700;}
 img{display:block;max-width:100%;height:auto;}
-.notes{border-left:4px solid #999;padding-left:16px;margin-top:20px;}
-.book-note-shoot{color:#222;font-weight:700;font-size:24px;margin-bottom:8px;}
-.book-note-meta{color:#444;font-size:24px;margin-bottom:8px;}
-.book-note-body{white-space:pre-wrap;line-height:1.6;font-size:26px;}
-.rsplit{display:flex;gap:30px;align-items:center;}
-.rphoto{flex:0 0 60%;min-width:0;}
-.rphoto img{max-width:100%;max-height:1400px;height:auto;width:auto;}
-.rinfo{flex:1 1 40%;min-width:0;}
-.lphotos{flex-shrink:0;text-align:center;}
-.lphotos img{max-width:100%;max-height:740px;height:auto;width:auto;margin:0 auto 22px;}
+.notes{border-left:4px solid #999;padding-left:16px;margin-top:18px;}
+.book-note-shoot{color:#222;font-weight:700;font-size:22px;margin-bottom:8px;}
+.book-note-meta{color:#444;font-size:22px;margin-bottom:8px;}
+.book-note-body{white-space:pre-wrap;line-height:1.55;font-size:23px;}
+/* Portrait: photo left, settings right (float — Kindle has no flexbox) */
+.rphoto{float:left;width:58%;padding-right:4%;box-sizing:border-box;}
+.rphoto img{max-width:100%;max-height:1350px;width:auto;height:auto;}
+.rinfo{overflow:hidden;}
+.rinfo table{margin-top:0;}
+.rclear{clear:both;}
+/* Landscape: photo stacked, larger */
+.lphotos{text-align:center;margin:0 -20px;}
+.lphotos img{max-width:100%;max-height:820px;width:auto;height:auto;margin:0 auto 18px;}
 .cover{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;text-align:center;}
 .cover h1{border:none;font-size:56px;margin:0 0 24px;}
 .cover p{font-size:26px;color:#444;margin:6px 0;}
@@ -14275,7 +14278,7 @@ img{display:block;max-width:100%;height:auto;}
             const chapLabel = multiGroup && gi === 0 ? `<p class="chap-sim">${escHtml(g.sim)}</p>` : '';
             const header = `<div class="phead">${chapLabel}<h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p></div>`;
             const pbody = (orient[r.id] && photosHtml)
-                ? `<div class="pbody"><div class="rsplit"><div class="rphoto">${photosHtml}</div><div class="rinfo"><table><tbody>${rows}</tbody></table>${notesHtml}</div></div></div>`
+                ? `<div class="pbody"><div class="rphoto">${photosHtml}</div><div class="rinfo"><table><tbody>${rows}</tbody></table>${notesHtml}</div><div class="rclear"></div></div>`
                 : `<div class="pbody"><div class="lphotos">${photosHtml}</div><table><tbody>${rows}</tbody></table>${notesHtml}</div>`;
             const chapXhtml =
 `<?xml version="1.0" encoding="UTF-8"?>
