@@ -14237,7 +14237,7 @@ img{display:block;max-width:100%;object-fit:contain;}
 <body><div class="page"><div class="cover"><h1>${escHtml(bookTitle)}</h1><p>FUJIFILM Film Simulation Recipes</p><p>${escHtml(String(recipes.length))} レシピ</p>${coverImgTag}</div></div></body></html>`;
     files.push({ name: 'OEBPS/cover.xhtml', bytes: enc.encode(coverXhtml) });
     manifestItems.push('<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>');
-    spineItems.push('<itemref idref="cover"/>');
+    spineItems.push('<itemref idref="cover" properties="rendition:layout-pre-paginated"/>');
 
     // Detect first-photo orientation per recipe (portrait → photo beside settings, like the PDF)
     const orient = {};
@@ -14283,7 +14283,7 @@ img{display:block;max-width:100%;object-fit:contain;}
 <body><div class="page">${header}${pbody}</div></body></html>`;
             files.push({ name: `OEBPS/${chapId}.xhtml`, bytes: enc.encode(chapXhtml) });
             manifestItems.push(`<item id="${chapId}" href="${chapId}.xhtml" media-type="application/xhtml+xml"/>`);
-            spineItems.push(`<itemref idref="${chapId}"/>`);
+            spineItems.push(`<itemref idref="${chapId}" properties="rendition:layout-pre-paginated"/>`);
             groupItems.push(`<li><a href="${chapId}.xhtml">${escHtml(r.title)}</a></li>`);
             ri++;
         });
@@ -14316,6 +14316,10 @@ img{display:block;max-width:100%;object-fit:contain;}
     <meta property="rendition:layout">pre-paginated</meta>
     <meta property="rendition:orientation">portrait</meta>
     <meta property="rendition:spread">none</meta>
+    <meta name="fixed-layout" content="true"/>
+    <meta name="orientation-lock" content="portrait"/>
+    <meta name="original-resolution" content="1240x1754"/>
+    <meta name="RegionMagnification" content="false"/>
   </metadata>
   <manifest>${manifestItems.join('')}</manifest>
   <spine>${spineItems.join('')}</spine>
