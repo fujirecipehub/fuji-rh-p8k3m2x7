@@ -14239,12 +14239,14 @@ h1{font-size:42px;line-height:1.2;margin:0 0 12px;border-bottom:3px solid #333;p
 .book-note-meta{color:#444;font-size:21px;margin-bottom:6px;}
 .book-note-body{white-space:pre-wrap;line-height:1.5;font-size:21px;}
 .lphotos{margin:0 -55px 18px -55px;text-align:center;}
-.prose{font-size:25px;line-height:1.9;margin:0 0 22px;text-align:left;}
-.toc-block{width:900px;margin:0 auto;}
-.toc-group{font-size:26px;font-weight:700;color:#a06a00;margin:22px 0 8px;}
-.toc-item{font-size:23px;margin:0 0 7px;padding-left:22px;}
-.toc-num{color:#888;}
-.toc-item a{color:#000;text-decoration:none;}
+.prose-block{width:860px;margin:0 auto;}
+.prose{font-size:25px;line-height:1.95;margin:0 0 26px;text-align:left;}
+.toc-block{width:860px;margin:0 auto;}
+.toc-group{font-size:23px;font-weight:700;color:#444;margin:30px 0 10px;padding-bottom:7px;border-bottom:1px solid #ddd;}
+.toc-tbl{width:100%;border-collapse:collapse;margin:0;}
+.toc-tbl td{padding:6px 0;font-size:22px;line-height:1.5;vertical-align:top;border:0;}
+.toc-num{width:62px;text-align:right;padding-right:16px;color:#999;}
+.toc-ttl a{color:#111;text-decoration:none;}
 .cover{text-align:center;}
 .cover h1{border:none;font-size:56px;margin:0 0 24px;}
 .cover p{font-size:26px;color:#444;margin:6px 0;}
@@ -14332,15 +14334,16 @@ img{display:block;border:0;}`;
         return t.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
             .map(p => `<p class="prose">${escHtml(p).replace(/\n/g, '<br/>')}</p>`);
     };
+    const PROSE_W = 860; // narrower, centred text column for comfortable reading
     // Split a paragraph that is taller than one page into sentence-sized pieces
     const splitTall = (para, avail) => {
-        if (measureH(para, PG.CW) <= avail) return [para];
+        if (measureH(para, PROSE_W) <= avail) return [para];
         const inner = para.replace(/^<p class="prose">/, '').replace(/<\/p>$/, '');
         const sentences = inner.split(/(?<=。)/).filter(Boolean);
         const out = []; let buf = '';
         sentences.forEach(s => {
             const trial = buf + s;
-            if (buf && measureH(`<p class="prose">${trial}</p>`, PG.CW) > avail) { out.push(`<p class="prose">${buf}</p>`); buf = s; }
+            if (buf && measureH(`<p class="prose">${trial}</p>`, PROSE_W) > avail) { out.push(`<p class="prose">${buf}</p>`); buf = s; }
             else buf = trial;
         });
         if (buf) out.push(`<p class="prose">${buf}</p>`);
@@ -14352,7 +14355,7 @@ img{display:block;border:0;}`;
         const headH = measureH(`<h1>${escHtml(heading)}</h1>`, PG.CW);
         const avail = PG.CH - headH - 12;
         paras = paras.flatMap(p => splitTall(p, avail));
-        const heights = paras.map(p => measureH(p, PG.CW));
+        const heights = paras.map(p => measureH(p, PROSE_W));
         const pages = []; let cur = [], curH = 0;
         paras.forEach((p, i) => {
             if (curH + heights[i] > avail && cur.length) { pages.push(cur); cur = []; curH = 0; }
@@ -14366,7 +14369,7 @@ img{display:block;border:0;}`;
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><meta name="viewport" content="width=1240, height=1754"/><title>${escHtml(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body><div class="page"><h1>${escHtml(title)}</h1>${pageParas.join('')}</div></body></html>`;
+<body><div class="page"><h1>${escHtml(title)}</h1><div class="prose-block">${pageParas.join('')}</div></div></body></html>`;
             files.push({ name: `OEBPS/${id}.xhtml`, bytes: enc.encode(xh) });
             manifestItems.push(`<item id="${id}" href="${id}.xhtml" media-type="application/xhtml+xml"/>`);
             spineItems.push(`<itemref idref="${id}" properties="rendition:layout-pre-paginated"/>`);
@@ -14390,9 +14393,9 @@ img{display:block;border:0;}`;
         const entries = [];
         ordered.forEach(o => {
             if (multiGroup && o.firstOfGroup) entries.push(`<div class="toc-group">${escHtml(o.sim)}</div>`);
-            entries.push(`<div class="toc-item"><span class="toc-num">${o.num}.</span> <a href="${o.chapId}.xhtml">${escHtml(o.r.title)}</a></div>`);
+            entries.push(`<table class="toc-tbl"><tbody><tr><td class="toc-num">${o.num}.</td><td class="toc-ttl"><a href="${o.chapId}.xhtml">${escHtml(o.r.title)}</a></td></tr></tbody></table>`);
         });
-        const TOC_BLOCK_W = 900;
+        const TOC_BLOCK_W = 860;
         const tocHeadH = measureH('<h1>目次</h1>', PG.CW);
         const tocAvail = PG.CH - tocHeadH - 12;
         const heights = entries.map(e => measureH(e, TOC_BLOCK_W));
