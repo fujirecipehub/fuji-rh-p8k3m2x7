@@ -14406,6 +14406,9 @@ img{display:block;border:0;}`;
             cur.push(e); curH += heights[i];
         });
         if (cur.length) tocPages.push(cur);
+        // Centre only when the contents fit on a single page; otherwise pack from the top
+        // so continuation pages don't open with a big gap under the heading.
+        const tocValign = tocPages.length > 1 ? 'top' : 'middle';
         tocPages.forEach((pageEntries, pi) => {
             const id = `toc${pi}`;
             const title = pi === 0 ? '目次' : '目次 (続き)';
@@ -14413,7 +14416,7 @@ img{display:block;border:0;}`;
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><meta name="viewport" content="width=1240, height=1754"/><title>${escHtml(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body><div class="page"><h1>${escHtml(title)}</h1><table width="${PG.CW}" height="${tocAvail}" style="border-collapse:collapse;"><tbody><tr><td valign="middle" style="padding:0;"><div class="toc-block">${pageEntries.join('')}</div></td></tr></tbody></table></div></body></html>`;
+<body><div class="page"><h1>${escHtml(title)}</h1><table width="${PG.CW}" height="${tocAvail}" style="border-collapse:collapse;"><tbody><tr><td valign="${tocValign}" style="padding:0;"><div class="toc-block">${pageEntries.join('')}</div></td></tr></tbody></table></div></body></html>`;
             files.push({ name: `OEBPS/${id}.xhtml`, bytes: enc.encode(xh) });
             manifestItems.push(`<item id="${id}" href="${id}.xhtml" media-type="application/xhtml+xml"/>`);
             spineItems.push(`<itemref idref="${id}" properties="rendition:layout-pre-paginated"/>`);
