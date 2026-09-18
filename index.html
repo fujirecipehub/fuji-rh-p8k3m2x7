@@ -2371,7 +2371,8 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
     border-radius: 10px; background: var(--bg-input); color: var(--text-primary); margin-bottom: 0.85rem;
 }
 .book-input:focus { outline: none; border-color: var(--accent-gold); }
-.book-textarea { font-family: inherit; line-height: 1.6; resize: vertical; }
+/* flex-shrink:0 stops the modal's flex column from squashing these to one line */
+.book-textarea { font-family: inherit; line-height: 1.6; resize: vertical; min-height: 7.5rem; flex-shrink: 0; }
 .book-toolbar-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
 .book-search { flex: 1 1 180px; margin-bottom: 0; }
 .book-mini-btn {
@@ -4120,9 +4121,9 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
             <label class="book-field-label" for="bookTitleInput">本のタイトル</label>
             <input type="text" class="book-input" id="bookTitleInput" value="マイ フィルムレシピブック">
             <label class="book-field-label" for="bookIntroInput">はじめに（表紙の次のページ・EPUBのみ）</label>
-            <textarea class="book-input book-textarea" id="bookIntroInput" rows="3" placeholder="この本についての説明..."></textarea>
+            <textarea class="book-input book-textarea" id="bookIntroInput" rows="6" placeholder="この本についての説明..."></textarea>
             <label class="book-field-label" for="bookOutroInput">終わりに（最後のページ・EPUBのみ）</label>
-            <textarea class="book-input book-textarea" id="bookOutroInput" rows="3" placeholder="あとがき..."></textarea>
+            <textarea class="book-input book-textarea" id="bookOutroInput" rows="6" placeholder="あとがき..."></textarea>
             <div class="book-toolbar-row">
                 <input type="text" class="book-input book-search" id="bookSearch" placeholder="レシピ名・シミュレーションで絞り込み...">
                 <button class="book-mini-btn" id="bookSelMy" type="button">マイレシピ全選択</button>
@@ -14230,6 +14231,7 @@ h1{font-size:42px;line-height:1.2;margin:0 0 12px;border-bottom:3px solid #333;p
 .book-note-body{white-space:pre-wrap;line-height:1.5;font-size:21px;}
 .lphotos{margin:0 -55px 18px -55px;text-align:center;}
 .prose{font-size:25px;line-height:1.9;margin:0 0 22px;text-align:left;}
+.toc-block{width:900px;margin:0 auto;}
 .toc-group{font-size:26px;font-weight:700;color:#a06a00;margin:22px 0 8px;}
 .toc-item{font-size:23px;margin:0 0 7px;padding-left:22px;}
 .toc-num{color:#888;}
@@ -14381,9 +14383,10 @@ img{display:block;border:0;}`;
             if (multiGroup && o.firstOfGroup) entries.push(`<div class="toc-group">${escHtml(o.sim)}</div>`);
             entries.push(`<div class="toc-item"><span class="toc-num">${o.num}.</span> <a href="${o.chapId}.xhtml">${escHtml(o.r.title)}</a></div>`);
         });
+        const TOC_BLOCK_W = 900;
         const tocHeadH = measureH('<h1>目次</h1>', PG.CW);
         const tocAvail = PG.CH - tocHeadH - 12;
-        const heights = entries.map(e => measureH(e, PG.CW));
+        const heights = entries.map(e => measureH(e, TOC_BLOCK_W));
         const tocPages = [];
         let cur = [], curH = 0;
         entries.forEach((e, i) => {
@@ -14398,7 +14401,7 @@ img{display:block;border:0;}`;
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><meta name="viewport" content="width=1240, height=1754"/><title>${escHtml(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body><div class="page"><h1>${escHtml(title)}</h1>${pageEntries.join('')}</div></body></html>`;
+<body><div class="page"><h1>${escHtml(title)}</h1><table width="${PG.CW}" height="${tocAvail}" style="border-collapse:collapse;"><tbody><tr><td valign="middle" style="padding:0;"><div class="toc-block">${pageEntries.join('')}</div></td></tr></tbody></table></div></body></html>`;
             files.push({ name: `OEBPS/${id}.xhtml`, bytes: enc.encode(xh) });
             manifestItems.push(`<item id="${id}" href="${id}.xhtml" media-type="application/xhtml+xml"/>`);
             spineItems.push(`<itemref idref="${id}" properties="rendition:layout-pre-paginated"/>`);
