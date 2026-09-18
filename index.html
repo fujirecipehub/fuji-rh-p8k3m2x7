@@ -14206,6 +14206,10 @@ h1{font-size:42px;line-height:1.2;margin:0 0 12px;border-bottom:3px solid #333;p
 .book-note-meta{color:#444;font-size:21px;margin-bottom:6px;}
 .book-note-body{white-space:pre-wrap;line-height:1.5;font-size:21px;}
 .lphotos{margin:0 -55px 18px -55px;text-align:center;}
+.toc-group{font-size:26px;font-weight:700;color:#a06a00;margin:22px 0 8px;}
+.toc-item{font-size:23px;margin:0 0 7px;padding-left:22px;}
+.toc-num{color:#888;}
+.toc-item a{color:#000;text-decoration:none;}
 .cover{text-align:center;}
 .cover h1{border:none;font-size:56px;margin:0 0 24px;}
 .cover p{font-size:26px;color:#444;margin:6px 0;}
@@ -14229,7 +14233,9 @@ img{display:block;border:0;}`;
     mdoc.close();
     const mEl = mdoc.getElementById('m');
     const measureH = (html, widthPx) => {
-        mEl.innerHTML = `<div style="width:${widthPx}px;">${html}</div>`;
+        // overflow:hidden makes the wrapper a block formatting context so child
+        // margins count toward offsetHeight instead of collapsing out of it
+        mEl.innerHTML = `<div style="width:${widthPx}px;overflow:hidden;">${html}</div>`;
         return mEl.firstChild.offsetHeight;
     };
     // Fit natural w/h into a box, preserving aspect (never upscale past the box)
@@ -14282,9 +14288,47 @@ img{display:block;border:0;}`;
     }));
 
     let imgId = 0;
-    let ri = 0;
     const groups = bookGroupBySim(recipes);
     const multiGroup = groups.length > 1;
+
+    // Fix the chapter order/ids up front so the table of contents can link to them
+    const ordered = [];
+    groups.forEach(g => g.items.forEach((r, gi) => {
+        ordered.push({ r, sim: g.sim, chapId: `ch${ordered.length}`, num: ordered.length + 1, firstOfGroup: gi === 0 });
+    }));
+
+    // ---- Table of contents page(s), paginated to the fixed page height ----
+    if (ordered.length > 1) {
+        const entries = [];
+        ordered.forEach(o => {
+            if (multiGroup && o.firstOfGroup) entries.push(`<div class="toc-group">${escHtml(o.sim)}</div>`);
+            entries.push(`<div class="toc-item"><span class="toc-num">${o.num}.</span> <a href="${o.chapId}.xhtml">${escHtml(o.r.title)}</a></div>`);
+        });
+        const tocHeadH = measureH('<h1>目次</h1>', PG.CW);
+        const tocAvail = PG.CH - tocHeadH - 12;
+        const heights = entries.map(e => measureH(e, PG.CW));
+        const tocPages = [];
+        let cur = [], curH = 0;
+        entries.forEach((e, i) => {
+            if (curH + heights[i] > tocAvail && cur.length) { tocPages.push(cur); cur = []; curH = 0; }
+            cur.push(e); curH += heights[i];
+        });
+        if (cur.length) tocPages.push(cur);
+        tocPages.forEach((pageEntries, pi) => {
+            const id = `toc${pi}`;
+            const title = pi === 0 ? '目次' : '目次 (続き)';
+            const xh =
+`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><meta name="viewport" content="width=1240, height=1754"/><title>${escHtml(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
+<body><div class="page"><h1>${escHtml(title)}</h1>${pageEntries.join('')}</div></body></html>`;
+            files.push({ name: `OEBPS/${id}.xhtml`, bytes: enc.encode(xh) });
+            manifestItems.push(`<item id="${id}" href="${id}.xhtml" media-type="application/xhtml+xml"/>`);
+            spineItems.push(`<itemref idref="${id}" properties="rendition:layout-pre-paginated"/>`);
+        });
+    }
+
+    let ri = 0;
     groups.forEach(g => {
         const groupItems = [];
         g.items.forEach((r, gi) => {
@@ -14331,8 +14375,7 @@ img{display:block;border:0;}`;
                 settingsHtml = `<table class="stbl" width="${PG.CW}"><colgroup><col width="${thW}"/><col width="${PG.CW - thW}"/></colgroup><tbody>${rows}</tbody></table>${notesHtml}`;
             }
             const settingsH = Math.ceil(measureH(settingsHtml, PG.CW) * 1.03) + 4;
-            // -10 absorbs the header's trailing margin, which collapses out of the measurement
-            const availH = PG.CH - headerH - 10;
+            const availH = PG.CH - headerH - 4;
 
             const photoBudget = Math.max(260, availH - settingsH - 20);
             const perPhotoH = Math.floor(photoBudget / nCount);
@@ -14376,6 +14419,22 @@ img{display:block;border:0;}`;
     if (mfr.parentNode) mfr.remove();
 
     const uid = 'urn:uuid:fuji-' + Date.now();
+
+    // toc.ncx as well — Kindle falls back to it, especially for fixed-layout books
+    const ncxPoints = ordered.map((o, i) =>
+`    <navPoint id="np${i}" playOrder="${i + 1}"><navLabel><text>${escHtml(o.r.title)}</text></navLabel><content src="${o.chapId}.xhtml"/></navPoint>`
+    ).join('\n');
+    const ncx =
+`<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head><meta name="dtb:uid" content="${uid}"/><meta name="dtb:depth" content="1"/></head>
+  <docTitle><text>${escHtml(bookTitle)}</text></docTitle>
+  <navMap>
+${ncxPoints}
+  </navMap>
+</ncx>`;
+    files.push({ name: 'OEBPS/toc.ncx', bytes: enc.encode(ncx) });
+    manifestItems.push('<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>');
     const opf =
 `<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" prefix="rendition: http://www.idpf.org/vocab/rendition/#">
@@ -14393,7 +14452,7 @@ img{display:block;border:0;}`;
     <meta name="RegionMagnification" content="false"/>
   </metadata>
   <manifest>${manifestItems.join('')}</manifest>
-  <spine>${spineItems.join('')}</spine>
+  <spine toc="ncx">${spineItems.join('')}</spine>
 </package>`;
     files.push({ name: 'OEBPS/content.opf', bytes: enc.encode(opf) });
 
