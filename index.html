@@ -14306,37 +14306,29 @@ img{display:block;border:0;}`;
             const notesHtml = bookNotesBlockHtml(r, 'notes');
             const chapLabel = multiGroup && gi === 0 ? `<p class="chap-sim">${escHtml(g.sim)}</p>` : '';
             const header = `${chapLabel}<h1>${escHtml(r.title)}</h1><p class="gen">${escHtml(genLabel)}</p>`;
-            const isPortrait = orient[r.id] && imgRefs.length > 0;
             const nat = natSize[r.id];
             const nCount = Math.max(1, imgRefs.length);
 
-            // Measure the real rendered heights so photos can fill the page exactly
+            // Measure the real rendered heights so the photo can fill the page exactly.
+            // Same treatment for portrait and landscape: the photo grows into whatever
+            // vertical space the settings leave, so no page ends up half empty.
             const headerH = measureH(header, PG.CW);
-            const infoW = isPortrait ? INFO_COL : PG.CW;
-            const thW = isPortrait ? 300 : 460;
-            const settingsHtml = `<table class="stbl" width="${infoW}"><colgroup><col width="${thW}"/><col width="${infoW - thW}"/></colgroup><tbody>${rows}</tbody></table>${notesHtml}`;
-            const settingsH = Math.ceil(measureH(`<div class="${isPortrait ? 'icell' : ''}">${settingsHtml}</div>`, infoW) * 1.03) + 4;
-            const availH = PG.CH - headerH;
+            const thW = 460;
+            const settingsHtml = `<table class="stbl" width="${PG.CW}"><colgroup><col width="${thW}"/><col width="${PG.CW - thW}"/></colgroup><tbody>${rows}</tbody></table>${notesHtml}`;
+            const settingsH = Math.ceil(measureH(settingsHtml, PG.CW) * 1.03) + 4;
+            // -10 absorbs the header's trailing margin, which collapses out of the measurement
+            const availH = PG.CH - headerH - 10;
 
-            let pbody;
-            if (isPortrait) {
-                // Photo left, settings right — fixed px columns, no percentages
-                const box = nat ? fitBox(nat.w, nat.h, PHOTO_COL, availH) : { w: PHOTO_COL, h: availH };
-                const photoCells = imgRefs.map(n => imgTag(n, box.w, box.h, 'margin:0 auto 12px;')).join('');
-                pbody = `<table class="split" width="${PG.CW}"><colgroup><col width="${PHOTO_COL + COL_GAP}"/><col width="${INFO_COL}"/></colgroup><tbody><tr>` +
-                    `<td class="pcell" width="${PHOTO_COL + COL_GAP}" valign="middle">${photoCells}</td>` +
-                    `<td class="icell" width="${INFO_COL}" valign="middle">${settingsHtml}</td>` +
-                    `</tr></tbody></table>`;
-            } else {
-                // Landscape: full-bleed photo grown to fill whatever the settings leave
-                const photoBudget = Math.max(260, availH - settingsH - 20);
-                const perPhotoH = Math.floor(photoBudget / nCount);
-                const photosHtml = imgRefs.map(n => {
-                    const box = nat ? fitBox(nat.w, nat.h, PG.W, perPhotoH) : { w: PG.W, h: perPhotoH };
-                    return imgTag(n, box.w, box.h, 'margin:0 auto;');
-                }).join('');
-                pbody = `<div class="lphotos">${photosHtml}</div>${settingsHtml}`;
-            }
+            const photoBudget = Math.max(260, availH - settingsH - 20);
+            const perPhotoH = Math.floor(photoBudget / nCount);
+            const photosHtml = imgRefs.map(n => {
+                const box = nat ? fitBox(nat.w, nat.h, PG.W, perPhotoH) : { w: PG.W, h: perPhotoH };
+                return imgTag(n, box.w, box.h, 'margin:0 auto;');
+            }).join('');
+            // valign=middle centres the block, so any leftover space splits top/bottom
+            const pbody = `<table width="${PG.CW}" height="${availH}" style="border-collapse:collapse;"><tbody><tr>` +
+                `<td valign="middle" style="padding:0;"><div class="lphotos">${photosHtml}</div>${settingsHtml}</td>` +
+                `</tr></tbody></table>`;
             const chapXhtml =
 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
