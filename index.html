@@ -2371,6 +2371,7 @@ body.dark-theme .evo-select-wrap select { background: rgba(255,255,255,0.05); }
     border-radius: 10px; background: var(--bg-input); color: var(--text-primary); margin-bottom: 0.85rem;
 }
 .book-input:focus { outline: none; border-color: var(--accent-gold); }
+.book-textarea { font-family: inherit; line-height: 1.6; resize: vertical; }
 .book-toolbar-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
 .book-search { flex: 1 1 180px; margin-bottom: 0; }
 .book-mini-btn {
@@ -4118,6 +4119,10 @@ body.dark-theme .pmatch-result-item { background: rgba(255,255,255,0.03); }
             <div class="book-desc">レシピを選んで、Kindleで読める本にまとめます（EPUB / PDF）</div>
             <label class="book-field-label" for="bookTitleInput">本のタイトル</label>
             <input type="text" class="book-input" id="bookTitleInput" value="マイ フィルムレシピブック">
+            <label class="book-field-label" for="bookIntroInput">はじめに（表紙の次のページ・EPUBのみ）</label>
+            <textarea class="book-input book-textarea" id="bookIntroInput" rows="3" placeholder="この本についての説明..."></textarea>
+            <label class="book-field-label" for="bookOutroInput">終わりに（最後のページ・EPUBのみ）</label>
+            <textarea class="book-input book-textarea" id="bookOutroInput" rows="3" placeholder="あとがき..."></textarea>
             <div class="book-toolbar-row">
                 <input type="text" class="book-input book-search" id="bookSearch" placeholder="レシピ名・シミュレーションで絞り込み...">
                 <button class="book-mini-btn" id="bookSelMy" type="button">マイレシピ全選択</button>
@@ -13836,6 +13841,22 @@ const BOOK_LABELS = {
 };
 const bookSelected = new Set();
 
+// ---- Book front/back matter (editable, remembered between books) ----
+const BOOK_INTRO_KEY = 'fuji_book_intro_original';
+const BOOK_OUTRO_KEY = 'fuji_book_outro_original';
+const DEFAULT_BOOK_INTRO = `この本は、FUJIFILMのフィルムシミュレーションで撮影した写真と、その設定（レシピ）をまとめたものです。
+
+それぞれのページには、作例写真・撮影時の設定値・撮影情報（レンズ、F値、シャッタースピード、ISO）・メモを掲載しています。気に入った仕上がりがあれば、同じ設定をカメラに入力して撮影してみてください。
+
+同じレシピでも、光や被写体によって写り方は変わります。この本が、あなたの一枚を見つける手がかりになれば幸いです。`;
+const DEFAULT_BOOK_OUTRO = `最後までご覧いただき、ありがとうございました。
+
+フィルムシミュレーションの面白さは、撮って出しの一枚に自分の好みを込められるところにあると思います。ここに収めたレシピも、撮り続けるうちに少しずつ変わっていくはずです。
+
+またあたらしいレシピがたまったら、この本を作り直してみてください。`;
+function getBookIntro() { const v = localStorage.getItem(BOOK_INTRO_KEY); return v === null ? DEFAULT_BOOK_INTRO : v; }
+function getBookOutro() { const v = localStorage.getItem(BOOK_OUTRO_KEY); return v === null ? DEFAULT_BOOK_OUTRO : v; }
+
 function bookGetPhotos(recipe) {
     if (recipe.isMyRecipe) return recipe.images || [];
     return recipePhotos[recipe.id] || [];
@@ -13947,6 +13968,8 @@ function updateBookCount() {
 }
 
 function openBook() {
+    document.getElementById('bookIntroInput').value = getBookIntro();
+    document.getElementById('bookOutroInput').value = getBookOutro();
     renderBookList();
     updateBookCount();
     document.getElementById('bookOverlay').classList.add('open');
@@ -14206,6 +14229,7 @@ h1{font-size:42px;line-height:1.2;margin:0 0 12px;border-bottom:3px solid #333;p
 .book-note-meta{color:#444;font-size:21px;margin-bottom:6px;}
 .book-note-body{white-space:pre-wrap;line-height:1.5;font-size:21px;}
 .lphotos{margin:0 -55px 18px -55px;text-align:center;}
+.prose{font-size:25px;line-height:1.9;margin:0 0 22px;text-align:left;}
 .toc-group{font-size:26px;font-weight:700;color:#a06a00;margin:22px 0 8px;}
 .toc-item{font-size:23px;margin:0 0 7px;padding-left:22px;}
 .toc-num{color:#888;}
@@ -14290,6 +14314,57 @@ img{display:block;border:0;}`;
     }));
 
     let imgId = 0;
+    // ---- Front/back matter ("はじめに" / "終わりに"), paginated to the fixed page ----
+    const proseParagraphs = (text) => {
+        const t = String(text || '').trim();
+        if (!t) return [];
+        return t.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+            .map(p => `<p class="prose">${escHtml(p).replace(/\n/g, '<br/>')}</p>`);
+    };
+    // Split a paragraph that is taller than one page into sentence-sized pieces
+    const splitTall = (para, avail) => {
+        if (measureH(para, PG.CW) <= avail) return [para];
+        const inner = para.replace(/^<p class="prose">/, '').replace(/<\/p>$/, '');
+        const sentences = inner.split(/(?<=。)/).filter(Boolean);
+        const out = []; let buf = '';
+        sentences.forEach(s => {
+            const trial = buf + s;
+            if (buf && measureH(`<p class="prose">${trial}</p>`, PG.CW) > avail) { out.push(`<p class="prose">${buf}</p>`); buf = s; }
+            else buf = trial;
+        });
+        if (buf) out.push(`<p class="prose">${buf}</p>`);
+        return out;
+    };
+    const addProsePages = (idPrefix, heading, text) => {
+        let paras = proseParagraphs(text);
+        if (!paras.length) return;
+        const headH = measureH(`<h1>${escHtml(heading)}</h1>`, PG.CW);
+        const avail = PG.CH - headH - 12;
+        paras = paras.flatMap(p => splitTall(p, avail));
+        const heights = paras.map(p => measureH(p, PG.CW));
+        const pages = []; let cur = [], curH = 0;
+        paras.forEach((p, i) => {
+            if (curH + heights[i] > avail && cur.length) { pages.push(cur); cur = []; curH = 0; }
+            cur.push(p); curH += heights[i];
+        });
+        if (cur.length) pages.push(cur);
+        pages.forEach((pageParas, pi) => {
+            const id = `${idPrefix}${pi}`;
+            const title = pi === 0 ? heading : `${heading}（続き）`;
+            const xh =
+`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><meta name="viewport" content="width=1240, height=1754"/><title>${escHtml(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
+<body><div class="page"><h1>${escHtml(title)}</h1>${pageParas.join('')}</div></body></html>`;
+            files.push({ name: `OEBPS/${id}.xhtml`, bytes: enc.encode(xh) });
+            manifestItems.push(`<item id="${id}" href="${id}.xhtml" media-type="application/xhtml+xml"/>`);
+            spineItems.push(`<itemref idref="${id}" properties="rendition:layout-pre-paginated"/>`);
+        });
+    };
+
+    // 表紙 → はじめに → 目次 → レシピ → 終わりに
+    addProsePages('intro', 'はじめに', getBookIntro());
+
     const groups = bookGroupBySim(recipes);
     const multiGroup = groups.length > 1;
 
@@ -14409,6 +14484,8 @@ img{display:block;border:0;}`;
         }
     });
 
+    addProsePages('outro', '終わりに', getBookOutro());
+
     // nav.xhtml (EPUB3 TOC)
     const navXhtml =
 `<?xml version="1.0" encoding="UTF-8"?>
@@ -14475,6 +14552,8 @@ function setupBook() {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
     document.getElementById('bookSearch').addEventListener('input', renderBookList);
     document.getElementById('bookCoverSelect').addEventListener('change', updateBookCoverPreview);
+    document.getElementById('bookIntroInput').addEventListener('input', (e) => localStorage.setItem(BOOK_INTRO_KEY, e.target.value));
+    document.getElementById('bookOutroInput').addEventListener('input', (e) => localStorage.setItem(BOOK_OUTRO_KEY, e.target.value));
     document.getElementById('bookList').addEventListener('change', (e) => {
         const row = e.target.closest('.book-row');
         if (!row) return;
