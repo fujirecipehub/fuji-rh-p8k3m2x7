@@ -14200,7 +14200,7 @@ h1{font-size:42px;line-height:1.2;margin:0 0 12px;border-bottom:3px solid #333;p
 .stbl th{color:#333;font-weight:700;}
 .split{border-collapse:collapse;}
 .pcell{padding:0 24px 0 0;}
-.icell .stbl th,.icell .stbl td{font-size:21px;padding:5px 9px;}
+.two-col .stbl th,.two-col .stbl td{font-size:20px;padding:5px 8px;}
 .notes{border-left:4px solid #999;padding-left:16px;margin-top:16px;}
 .book-note-shoot{color:#222;font-weight:700;font-size:21px;margin-bottom:6px;}
 .book-note-meta{color:#444;font-size:21px;margin-bottom:6px;}
@@ -14313,8 +14313,23 @@ img{display:block;border:0;}`;
             // Same treatment for portrait and landscape: the photo grows into whatever
             // vertical space the settings leave, so no page ends up half empty.
             const headerH = measureH(header, PG.CW);
-            const thW = 460;
-            const settingsHtml = `<table class="stbl" width="${PG.CW}"><colgroup><col width="${thW}"/><col width="${PG.CW - thW}"/></colgroup><tbody>${rows}</tbody></table>${notesHtml}`;
+            const isPortrait = orient[r.id] && imgRefs.length > 0;
+            let settingsHtml;
+            if (isPortrait) {
+                // Portrait photos need the vertical room, so lay the settings out in two
+                // columns — that roughly halves the table height and the photo takes the rest.
+                const rowArr = rows.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+                const half = Math.ceil(rowArr.length / 2);
+                const colW = 541;
+                const mk = rs => `<table class="stbl" width="${colW}"><colgroup><col width="290"/><col width="${colW - 290}"/></colgroup><tbody>${rs}</tbody></table>`;
+                settingsHtml = `<div class="two-col"><table width="${PG.CW}" style="border-collapse:collapse;"><tbody><tr>` +
+                    `<td width="565" valign="top" style="padding:0 24px 0 0;">${mk(rowArr.slice(0, half).join(''))}</td>` +
+                    `<td width="565" valign="top" style="padding:0;">${mk(rowArr.slice(half).join(''))}</td>` +
+                    `</tr></tbody></table>${notesHtml}</div>`;
+            } else {
+                const thW = 460;
+                settingsHtml = `<table class="stbl" width="${PG.CW}"><colgroup><col width="${thW}"/><col width="${PG.CW - thW}"/></colgroup><tbody>${rows}</tbody></table>${notesHtml}`;
+            }
             const settingsH = Math.ceil(measureH(settingsHtml, PG.CW) * 1.03) + 4;
             // -10 absorbs the header's trailing margin, which collapses out of the measurement
             const availH = PG.CH - headerH - 10;
