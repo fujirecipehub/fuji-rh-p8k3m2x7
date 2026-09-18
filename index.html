@@ -14259,7 +14259,9 @@ img{display:block;border:0;}`;
             const ext = mime.indexOf('png') >= 0 ? 'png' : (mime.indexOf('webp') >= 0 ? 'webp' : 'jpg');
             const name = `images/cover.${ext}`;
             files.push({ name: 'OEBPS/' + name, bytes });
-            manifestItems.push(`<item id="coverimg" href="${name}" media-type="${mime}" properties="cover-image"/>`);
+            // NOTE: deliberately no properties="cover-image" — that makes Kindle insert an
+            // extra page showing just the raw image in front of our designed cover page.
+            manifestItems.push(`<item id="coverimg" href="${name}" media-type="${mime}"/>`);
             const csz = await imgSize(coverPhoto);
             const cover = csz ? fitBox(csz.w, csz.h, PG.CW, 1000) : { w: PG.CW, h: 700 };
             // explicit px + auto side margins keeps it centred without flex
@@ -14453,6 +14455,7 @@ ${ncxPoints}
   </metadata>
   <manifest>${manifestItems.join('')}</manifest>
   <spine toc="ncx">${spineItems.join('')}</spine>
+  <guide><reference type="cover" title="Cover" href="cover.xhtml"/></guide>
 </package>`;
     files.push({ name: 'OEBPS/content.opf', bytes: enc.encode(opf) });
 
